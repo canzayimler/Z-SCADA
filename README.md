@@ -6,6 +6,37 @@ Komutlar yazmadan önce denetlenir, yazmadan sonra geri okumayla doğrulanır.
 
 > English summary is at the end of this file.
 
+## Kurulum (Windows .exe)
+
+Node.js veya başka bir araç gerekmez; kurulum dosyası her şeyi içerir.
+
+1. [GitHub Releases](https://github.com/canzayimler/Z-SCADA/releases/latest) sayfasından
+   `Z-SCADA-Kurulum-<sürüm>.exe` dosyasını indirin.
+2. Dosyaya çift tıklayın ve yönetici onayı verin. Kurulum dosyası imzasız olduğu için Windows
+   SmartScreen "Windows bilgisayarınızı korudu" uyarısı gösterebilir: **Daha fazla bilgi** (bazı
+   sürümlerde "Ek bilgi") → **Yine de çalıştır**. İsterseniz önce dosyanın SHA-256 değerini sürüm
+   notlarındakiyle karşılaştırın: `Get-FileHash .\Z-SCADA-Kurulum-<sürüm>.exe`.
+3. Z SCADA `C:\Program Files\Z SCADA` klasörüne kurulur ve **Windows servisi** (`ZScada`) olarak
+   Windows ile birlikte başlar. Tepsi simgesi servisi izler; kurulum bitince arayüz açılır.
+4. Arayüz: **http://localhost:4730** (yalnız bu bilgisayardan erişilir; Node-RED köprüsü
+   `127.0.0.1:4731`). Port doluysa sıradaki boş port kullanılır.
+5. **İlk giriş:** kullanıcı adı `admin`. Rastgele üretilen parola ilk açılışta
+   `C:\ProgramData\DVP-SCADA\data\admin-access.json` dosyasına yazılır. Dosyayı yalnız yöneticiler
+   okuyabilir (Not Defteri'ni "Yönetici olarak çalıştır" ile açın). Girişten sonra parolayı
+   değiştirin ve dosyayı silin.
+
+İlk açılışta örnek bir proje gelir; cihazlar pasif, ekranlar taslak başlar ve kurulum PLC'ye
+komut göndermez. Veriler (ekranlar, ayarlar, kullanıcılar, geçmiş, loglar)
+`C:\ProgramData\DVP-SCADA\data` altındadır (klasör adı, mevcut kurulumların yükseltilebilmesi için
+ürünün eski adını korur). Yeni sürümün kurulum dosyasını çalıştırmak yerinde günceller ve verileri
+korur.
+
+**Kaldırma:** Ayarlar → Uygulamalar → Z SCADA → Kaldır (veya Başlat menüsü → "Z SCADA'yi Kaldir").
+Servis durdurulup silinir; veri klasörünün silinip silinmeyeceği sorulur, varsayılan olarak korunur.
+
+Kurulum dosyası bu depodaki kaynaktan `installer\build.ps1` ile üretilir; kendiniz derlemek için:
+[installer/README.md](installer/README.md).
+
 ## Görseller / Screenshots
 
 Tüm görüntüler yerel simülasyon demosundan alınmıştır; her protokol 127.0.0.1 üzerindeki bir
@@ -154,7 +185,13 @@ read-back afterwards.
   and EtherNet/IP (CIP); read-only for MQTT (plus publishing tags to a broker), SNMP, HTTP/REST,
   SQL Server (single `SELECT`) and BACnet/IP.
 - **Architecture:** React web UI ⇄ Fastify + SQLite server ⇄ generated Node-RED bridge ⇄ devices.
-- **Quick start:** Node.js 22.5+, then `npm ci`, `npm run build`, `.\baslat.ps1` (Windows) or
+- **Windows installer:** download `Z-SCADA-Kurulum-<version>.exe` from
+  [Releases](https://github.com/canzayimler/Z-SCADA/releases/latest) and run it (unsigned: in
+  SmartScreen choose "More info" → "Run anyway"). It installs as the Windows service `ZScada` and
+  serves http://localhost:4730; the first `admin` password is written to
+  `C:\ProgramData\DVP-SCADA\data\admin-access.json` (readable by administrators only). Uninstall from
+  Settings → Apps. Build it yourself with `installer\build.ps1` (see `installer/README.md`).
+- **Quick start from source:** Node.js 22.5+, then `npm ci`, `npm run build`, `.\baslat.ps1` (Windows) or
   `npm start` for the server alone. UI at http://localhost:3000. See `KURULUM.md` (Turkish) for
   service install, TLS and redundancy.
 - **Security:** connection secrets live in a separate permission-restricted file and are never

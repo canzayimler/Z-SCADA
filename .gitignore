@@ -12,6 +12,13 @@ paket/
 .env
 .env.*
 
+# Kurucu derleme çıktısı (installer/build.ps1)
+installer/_staging/
+installer/dist/
+installer/assets/
+installer/launcher/bin/
+installer/launcher/obj/
+
 # Yerel ajan/skill kurulumları
 .agents/
 .claude/

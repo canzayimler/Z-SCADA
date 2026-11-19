@@ -1,0 +1,6 @@
+_staging/
+dist/
+assets/
+*.log
+launcher/bin/
+launcher/obj/
