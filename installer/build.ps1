@@ -14,7 +14,9 @@
     Z SCADA kaynak agaci (package.json'in oldugu klasor). Varsayilan: betigin bir ust klasoru.
 
 .PARAMETER Version
-    Kurucu surumu (dosya adi ve Programlar listesindeki surum), ornek 0.5.0.
+    Istege bagli. Kurucu surumu (dosya adi ve Programlar listesindeki surum), ornek 0.6.0. Tek surum kaynagi
+    kok package.json "version" alanidir (uygulama /api/health'te ve guncelleme denetiminde onu raporlar);
+    verilmezse oradan alinir, verilir ve farkliysa derleme durur. Yeni surum icin once package.json guncellenir.
 
 .PARAMETER NodeVersion
     Istege bagli sabitleme: PATH'teki node.exe bu surum degilse (ornek '24.11.1' veya 'v24.11.1') derleme durur.
@@ -25,7 +27,7 @@
     kurulum uygulamanin yerlesik ornek projesiyle baslar. paket\ yoksa bu anahtar yok sayilir.
 #>
 param(
-    [Parameter(Mandatory = $true)][string]$Version,
+    [string]$Version = '',
     [string]$SourceRoot = '',
     [string]$NodeVersion = '',
     [switch]$IncludePaket
@@ -59,10 +61,19 @@ function Reset-BuildDirectory([string]$Path) {
     New-Item -ItemType Directory -Force -Path $resolvedTarget | Out-Null
 }
 
-if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Surum X.Y.Z biciminde olmali (ornek 0.5.0): $Version" }
 if (-not (Test-Path -LiteralPath (Join-Path $SourceRoot 'package.json'))) {
     throw "Z SCADA kaynak klasoru bulunamadi (package.json yok): $SourceRoot"
 }
+# Tek surum kaynagi package.json: kurucu dosya adi, Programlar listesi ve uygulamanin raporladigi surum ayni olmali.
+# (Staging'e damgalamak yerine durdurmak secildi: depodaki kaynak ile yayinlanan kurulum hep ayni surumu soyler.)
+$pkgVersion = [string]((Get-Content -LiteralPath (Join-Path $SourceRoot 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version)
+if ($pkgVersion -notmatch '^\d+\.\d+\.\d+$') { throw "package.json version X.Y.Z biciminde olmali: '$pkgVersion'" }
+if (-not $Version) { $Version = $pkgVersion }
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Surum X.Y.Z biciminde olmali (ornek 0.6.0): $Version" }
+if ($Version -ne $pkgVersion) {
+    throw "-Version $Version, package.json version $pkgVersion ile ayni degil. Once package.json'i guncelleyin (veya -Version vermeyin)."
+}
+Write-Output "Surum: $Version (package.json)"
 
 # --- Araclar ----------------------------------------------------------------------------------------------
 $npm = (Get-Command npm.cmd -ErrorAction Stop).Source

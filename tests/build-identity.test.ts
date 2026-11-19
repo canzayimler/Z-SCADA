@@ -43,6 +43,7 @@ test('/api/health exposes build identity, reading dist/web/build.json fresh on e
  try{
   app=await createServer();
   const first=await app.inject({method:'GET',url:'/api/health'});
+  assert.equal(first.json().version,JSON.parse(fs.readFileSync(path.join(originalCwd,'package.json'),'utf8')).version,'surum package.json kaynakli');
   assert.equal(first.json().build.dist,'dist-v1');
   assert.equal(first.json().build.distAt,111);
   assert.ok('server' in first.json().build);

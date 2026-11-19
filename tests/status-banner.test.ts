@@ -32,3 +32,16 @@ test('bayat sayisi cihaz toplamlarindan: hic ornegi olmayan etiket de sayilir',(
  const n=statusNotices({connected:true,fresh:true,live:live({samples:{a:{quality:'stale'} as any},devices:[dev('PLC-01','down',0,6),dev('PLC-02','down',0,8)]})});
  assert.match(n[0].detail!,/14\/14 etiket/);
 });
+test('yeni surum bildirimi yalniz yoneticiye; dogrulanmamissa tek tik kurulum anlatilmaz',()=>{
+ const update={available:true,verified:true,latest:'0.7.0',notesUrl:'https://github.com/o/r/releases/tag/v0.7.0',asset:{name:'Z-SCADA-Kurulum-0.7.0.exe',url:'https://github.com/o/r/releases/download/v0.7.0/Z-SCADA-Kurulum-0.7.0.exe',size:1,sha256:'a'.repeat(64)}};
+ assert.deepEqual(statusNotices({connected:true,fresh:true,live:live(),update}),[],'yonetici degil: bildirim yok');
+ assert.deepEqual(statusNotices({connected:true,fresh:true,live:live(),update,isAdmin:false}),[]);
+ const [n]=statusNotices({connected:true,fresh:true,live:live(),update,isAdmin:true});
+ assert.equal(n.id,'update');assert.equal(n.tone,'info');assert.equal(n.title,'Z SCADA 0.7.0 yayınlandı');
+ assert.match(n.detail!,/Tepsideki Z SCADA simgesi → Güncellemeyi kur/);
+ assert.deepEqual(n.links!.map(l=>l.label),['Sürüm notları','Kurulum dosyasını indir']);
+ const [u]=statusNotices({connected:true,fresh:true,live:live(),update:{...update,verified:false,asset:{...update.asset,sha256:null}},isAdmin:true});
+ assert.doesNotMatch(u.detail!,/Güncellemeyi kur/);assert.match(u.detail!,/SHA-256/);assert.equal(u.links!.length,2);
+ assert.deepEqual(statusNotices({connected:true,fresh:true,live:live(),update:{...update,available:false},isAdmin:true}),[]);
+ assert.deepEqual(statusNotices({connected:true,fresh:true,live:live(),update:null,isAdmin:true}),[]);
+});

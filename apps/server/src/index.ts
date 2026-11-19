@@ -33,6 +33,8 @@ import {Alarms} from './alarms';
 import {acceptSource,acceptSampledAt,noteReject,ingestRejects,type SourceState} from './ingest';
 import {createFileLogger} from './log';
 import {sampleDelta} from './liveDelta';
+import {APP_VERSION} from './version';
+import {createUpdateChecker,registerUpdate} from './update';
 /* Beklenmeyen (5xx / calisma zamani) hatalar operatore sizdirilmaz: genel Turkce mesaj donulur,
  * ayrinti sadece server.log'a yazilir. Kasitli is hatalari (Error('mesaj'), statusCode<500) eski
  * davranista kalir — mevcut testler buna guvenir. Test edilebilir olsun diye saf fonksiyon. */
@@ -654,6 +656,11 @@ app.post('/api/import',async req=>{
 app.post('/api/backup',async req=>{const u=requireRole(req,['admin']),name=`backup-${Date.now()}.sqlite`;await backup(store.db,path.join(directory,name));store.audit(u.username,'backup.created',{name});return {name};});
 const {uploads,usedImages,unusedImages,imagePattern}=await registerMedia({app,store,directory,read,edit,requireRole});
 registerConnectionSecrets({app,store,directory,requireRole,requireFresh});
+/* Guncelleme denetimi (update.ts): gunde bir GitHub sorgusu, yalniz yoneticiye bildirim; kurulum tepsiden ve onayla.
+ * Test calistiricisinda kendiliginden zamanlanmaz (gercek GitHub'a gidilmesin); testler check()'i dogrudan cagirir. */
+const updates=createUpdateChecker({store,log:fileLog.logger});
+registerUpdate({app,store,requireRole,checker:updates});
+if(!process.env.NODE_TEST_CONTEXT)updates.start();
 registerProjects({app,store,directory,requireRole,requireFresh,busy:()=>deploying||commands.pending.size>0,backup:name=>backup(store.db,path.join(directory,name)).then(()=>{})});
 /* --- Saglik (B11) ---------------------------------------------------------
  * Portun acik olmasi calisan SCADA anlamina gelmez. Liveness surecin
@@ -697,7 +704,7 @@ app.get('/api/health',async(req,reply)=>{
  if(!ok)reply.code(503);
  const distBuild=currentDistBuild();
  // bridge: Node-RED kopru watchdog'unun son bilinen sonucu (gorunurluk icin, liveness'i etkilemez).
- return {ok,version:'0.1.0',uptimeMs:Date.now()-startedAt,eventLoopLagMs:loopLag,bridge:gatewayHealth(),
+ return {ok,version:APP_VERSION,uptimeMs:Date.now()-startedAt,eventLoopLagMs:loopLag,bridge:gatewayHealth(),
   build:{server:startBuild?.id??null,dist:distBuild?.id??null,serverAt:startBuild?.at??null,distAt:distBuild?.at??null}};
 });
 /**
@@ -718,7 +725,7 @@ app.get('/api/cluster',async req=>{read(req);const owner=store.ownership();
 app.get('/api/ready',async(req,reply)=>{
  const r=readiness();if(!r.ready)reply.code(503);
  // bridge: koprunun goruntusu ready hesabina karismaz — yazma zaten staleMs ile durur, bu sadece teshis.
- return {...r,version:'0.1.0',uptimeMs:Date.now()-startedAt,bridge:gatewayHealth(),ingestRejects:ingestRejects()};
+ return {...r,version:APP_VERSION,uptimeMs:Date.now()-startedAt,bridge:gatewayHealth(),ingestRejects:ingestRejects()};
 });
 const wsServer=new WebSocketServer({noServer:true,maxPayload:1024*1024});
 app.server.on('upgrade',(req,socket,head)=>{
@@ -818,10 +825,10 @@ const timer=setInterval(()=>{
 if(fs.existsSync(path.resolve('dist/web'))){await app.register(staticFiles,staticOptions(path.resolve('dist/web')));app.setNotFoundHandler((req,reply)=>req.url.startsWith('/api')?reply.code(404).send({error:'Bulunamadı'}):reply.sendFile('index.html'));}
 // Testte port acmadan `app.inject` ile surulebilsin diye dinleme kosullu (B55).
 if(process.env.SCADA_NO_LISTEN!=='1'){await app.listen({host:process.env.SCADA_HOST||'127.0.0.1',port});console.log(`Z SCADA http://localhost:${port}`);}
-async function close(){try{await commands.shutdown();}catch{}clearInterval(timer);try{energy.meter.flush();}catch{}clearInterval(prune);clearInterval(lagTimer);clearInterval(ownershipTimer);stopGatewayWatchdog();fileLog.stop();process.off("uncaughtException",onUncaught);process.off("unhandledRejection",onUnhandled);for(const ws of wsServer.clients)ws.close();await app.close();store.close();process.exit(0);}
+async function close(){try{await commands.shutdown();}catch{}clearInterval(timer);try{energy.meter.flush();}catch{}clearInterval(prune);clearInterval(lagTimer);updates.stop();clearInterval(ownershipTimer);stopGatewayWatchdog();fileLog.stop();process.off("uncaughtException",onUncaught);process.off("unhandledRejection",onUnhandled);for(const ws of wsServer.clients)ws.close();await app.close();store.close();process.exit(0);}
 process.on('SIGINT',()=>void close());process.on('SIGTERM',()=>void close());
 /** Testler icin: acik zamanlayicilari da kapatan, sureci sonlandirmayan kapanis. */
-return Object.assign(app,{scadaStore:store,scadaClose:async()=>{try{await commands.shutdown();}catch{}clearInterval(timer);try{energy.meter.flush();}catch{}clearInterval(prune);clearInterval(lagTimer);clearInterval(watchdogTimer);clearInterval(ownershipTimer);stopGatewayWatchdog();fileLog.stop();process.off("uncaughtException",onUncaught);process.off("unhandledRejection",onUnhandled);for(const ws of wsServer.clients)ws.close();await app.close();store.close();}});
+return Object.assign(app,{scadaStore:store,scadaClose:async()=>{try{await commands.shutdown();}catch{}clearInterval(timer);try{energy.meter.flush();}catch{}clearInterval(prune);clearInterval(lagTimer);updates.stop();clearInterval(watchdogTimer);clearInterval(ownershipTimer);stopGatewayWatchdog();fileLog.stop();process.off("uncaughtException",onUncaught);process.off("unhandledRejection",onUnhandled);for(const ws of wsServer.clients)ws.close();await app.close();store.close();}});
 }
 /** Port acmadan kurulmus sunucu; `app.inject` ile HTTP testleri yazilabilir. */
 export async function createServer(){const prior=process.env.SCADA_NO_LISTEN;process.env.SCADA_NO_LISTEN='1';try{return await main();}finally{if(prior===undefined)delete process.env.SCADA_NO_LISTEN;else process.env.SCADA_NO_LISTEN=prior;}}

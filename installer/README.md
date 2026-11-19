@@ -33,7 +33,8 @@ sürümü sürüm notlarına yazın.
 Deponun kökünde, temiz bir klonda:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\installer\build.ps1 -Version 0.5.0
+powershell -ExecutionPolicy Bypass -File .\installer\build.ps1
+# -Version verilirse package.json "version" ile ayni olmali (ornek -Version 0.6.0); farkliysa derleme durur.
 # isteğe bağlı: -NodeVersion 24.11.1   (gömülü node sürümünü sabitler)
 ```
 
@@ -76,6 +77,28 @@ projesiyle başlar.
 - Her servis adımı `C:\Program Files\Z SCADA\kurulum.log`'a yazılır.
 - **Kaldırma:** Ayarlar → Uygulamalar → Z SCADA → Kaldır (veya Başlat menüsü → "Z SCADA'yi
   Kaldir"). Servis durdurulup silinir; veri klasörünün silinmesi sorulur, varsayılan olarak korunur.
+
+## Sürüm ve güncelleme
+
+- **Tek sürüm kaynağı** kök `package.json` `version` alanıdır: uygulama `/api/health`'te onu
+  raporlar, `build.ps1` kurucu sürümünü oradan alır. Yeni yayın için önce `package.json`
+  güncellenir; `-Version` farklı verilirse derleme durur.
+- **Yayın:** GitHub Release etiketi `vX.Y.Z`, asset adı `Z-SCADA-Kurulum-X.Y.Z.exe`. GitHub asset
+  `digest` alanını (`sha256:...`) kendisi üretir; tepsi tek tık kurulumu bu özetle doğrular. Özet
+  yoksa sürüm notlarına `SHA-256: <hex>` satırı yazılır (yedek); ikisi de yoksa tek tık kurulum
+  sunulmaz.
+- **Tepsiden güncelleme** (`launcher\ZScada.cs`, servis kipi): yerel `/api/update/public` yeni
+  sürüm derse tepsi GitHub'a kendisi sorar; onaydan sonra kurucuyu kullanıcının
+  `%TEMP%\ZScada-Guncelleme` klasörüne indirir, SHA-256'yı doğrular ve `runas` ile
+  `/SILENT /SUPPRESSMSGBOXES /NORESTART /ZSCADATEPSI=1` parametreleriyle başlatır. `/ZSCADATEPSI=1`
+  kurulum bitince tepsiyi kullanıcının oturumunda yeniden açar. Adımlar
+  `%LOCALAPPDATA%\DVP-SCADA\tepsi.log` dosyasına yazılır.
+- **Teşhis:** `ZScada.exe --guncelleme-denetle <apiTabani> [--indir] [--surum X.Y.Z] [--veri <klasör>]`
+  kararı (ve `--indir` ile indirme + SHA-256 sonucunu) yazıp çıkar; kurucuyu asla başlatmaz.
+  Çıkış kodu: 0 güncel, 10 doğrulanmış güncelleme, 11 doğrulanmamış, 20 indirildi ve SHA doğru,
+  21 reddedildi, 1 hata.
+- **Ayarlar** (`ayarlar.ps1`, sunucuya ortam değişkeni olarak geçer): `$ZSCADA_UPDATE_CHECK = 0`
+  denetimi kapatır; `$ZSCADA_UPDATE_REPO` / `$ZSCADA_UPDATE_API` kaynağı değiştirir (test).
 
 ## Yükseltme uyumluluğu (değiştirmeyin)
 

@@ -18,7 +18,7 @@ import {Studio,Field} from './Studio';
 import {NoticeCenter} from './StatusBanner';
 import {RuntimeList} from './RuntimeList';
 import {applyLive} from './liveMerge';
-import {statusNotices,statusLabel,type BuildInfo} from './statusModel';
+import {statusNotices,statusLabel,type BuildInfo,type UpdateInfo} from './statusModel';
 import {api,setReauthHandler,setSessionEndHandler} from './api';
 import {pathFor,parsePath,projectStale} from './routing';
 import {useModal} from './useModal';
@@ -81,6 +81,11 @@ function App(){
  // Surum bandi: sunucunun acilistaki ve diskteki derleme kimligi 30 sn'de bir okunur.
  const [build,setBuild]=useState<BuildInfo|null>(null);
  useEffect(()=>{if(!user||__BUILD_ID__==='dev')return;const load=()=>void api<any>('/health').then(h=>setBuild(h.build||null)).catch(()=>{});load();const id=setInterval(load,30000);return()=>clearInterval(id);},[user]);
+ // Yeni surum (yalniz yonetici): sunucu gunde bir GitHub'a sorar; arayuz 30 dk'da bir sonucu okur. Ayarlar paneli
+ // degisince 'zscada:update' olayiyla hemen gunceller.
+ const [update,setUpdate]=useState<UpdateInfo|null>(null);
+ useEffect(()=>{if(user?.role!=='admin'){setUpdate(null);return;}const load=()=>void api<UpdateInfo>('/update').then(setUpdate).catch(()=>{});load();const id=setInterval(load,1800000);
+  const on=(e:Event)=>setUpdate((e as CustomEvent<UpdateInfo>).detail);addEventListener('zscada:update',on);return()=>{clearInterval(id);removeEventListener('zscada:update',on);};},[user?.role]);
  useEffect(()=>{if(!user)return;const load=()=>void api<any>('/cluster').then(setCluster).catch(()=>{});load();const id=setInterval(load,15000);return()=>clearInterval(id);},[user]);
  useEffect(()=>{if(!user)return;void api<Preferences>('/preferences').then(raw=>{const p=normalizePrefs(raw);setPrefs(p);if(p.theme!=='system')setTheme(p.theme);
   // Eski cihaz ayari (localStorage) bir kez hesaba tasinir.
@@ -149,7 +154,7 @@ function App(){
  const kioskShell=prefs.kiosk.enabled&&prefs.kiosk.hideChrome&&page==='dashboard';
  const kioskStarted=useRef(false);
  useEffect(()=>{if(!project||!prefs.kiosk.enabled||kioskStarted.current)return;kioskStarted.current=true;if(page!=='dashboard')void navigate('dashboard');},[project,prefs.kiosk.enabled]);
- const notices=statusNotices({connected,fresh,live:safeLive,build,clientBuild:__BUILD_ID__,isAdmin:user?.role==='admin'});
+ const notices=statusNotices({connected,fresh,live:safeLive,build,clientBuild:__BUILD_ID__,isAdmin:user?.role==='admin',update});
  const statusDetail=['Sunucu: '+(connected&&fresh?'bağlı':'bağlı değil'),'Köprü: '+(safeLive.gatewayConnected?'bağlı':'bağlı değil'),
   ...safeLive.devices.map(d=>`${d.code}: ${deviceStatusLabels[d.status]} (${d.good}/${d.tags} etiket)`),
   'Kumanda: '+(safeLive.controlReady?'hazır':'hazır değil')].join(' · ');

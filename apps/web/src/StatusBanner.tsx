@@ -1,11 +1,11 @@
 import {useEffect,useRef,useState} from 'react';
-import {AlertTriangle,Info,RefreshCw,WifiOff,Inbox} from 'lucide-react';
+import {AlertTriangle,Info,RefreshCw,WifiOff,Inbox,ExternalLink,Download} from 'lucide-react';
 import type {Notice} from './statusModel';
 /* Sistem bildirimleri (baglanti, uygulanmamis yapilandirma, surum kaymasi). 28.09 kullanıcı kararı:
  * sayfanin tepesinde bant olarak degil, ust cubuktaki bildirim simgesinde dursun; tiklayinca acilsin.
  * Simge her zaman yerinde durur (duzen ziplamaz); rozet sayisi ve rengi en agir bildirimi soyler.
  * Tam ekranda (pano) ust cubuk yok: sag ustte kucuk bir dugme olarak cizilir. */
-const icon=(n:Notice)=>n.tone==='info'?<Info size={16}/>:n.id==='server'||n.id==='bridge'?<WifiOff size={16}/>:<AlertTriangle size={16}/>;
+const icon=(n:Notice)=>n.id==='update'?<Download size={16}/>:n.tone==='info'?<Info size={16}/>:n.id==='server'||n.id==='bridge'?<WifiOff size={16}/>:<AlertTriangle size={16}/>;
 export function NoticeCenter({notices,floating}:{notices:Notice[];floating?:boolean}){
  const [open,setOpen]=useState(false),box=useRef<HTMLDivElement>(null);
  const worst=notices.some(n=>n.tone==='bad')?'bad':notices.some(n=>n.tone==='warn')?'warn':notices.length?'info':'';
@@ -26,6 +26,8 @@ export function NoticeCenter({notices,floating}:{notices:Notice[];floating?:bool
    <header>Sistem bildirimleri</header>
    {notices.length?notices.map(n=><div key={n.id} className={'notice-item '+n.tone}>
     {icon(n)}<div><strong>{n.title}</strong>{n.detail&&<span>{n.detail}</span>}
+    {n.hint&&<span>{n.hint}</span>}
+    {!!n.links?.length&&<span className="notice-links">{n.links.map(l=><a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">{l.label}<ExternalLink size={12}/></a>)}</span>}
     {n.action==='reload'&&<button className="btn small" onClick={()=>location.reload()}><RefreshCw size={13}/>Yenile</button>}</div>
    </div>):<p className="notice-empty">Her şey yolunda: bağlantı, yapılandırma ve sürüm güncel.</p>}
   </div>}

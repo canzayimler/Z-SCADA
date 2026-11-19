@@ -568,6 +568,8 @@ namespace ZScada
         string scadaAdres = "zscada.localhost";
         int scadaPort = 4730;
         int noderedPort = 4731;
+        // ayarlar.ps1'deki $ZSCADA_UPDATE_CHECK / _REPO / _API sunucuya ortam degiskeni olarak gecer (guncelleme denetimi).
+        readonly Dictionary<string, string> guncellemeOrtam = new Dictionary<string, string>();
 
         // UI geri cagrilari (herhangi bir iplikten cagrilabilir).
         public Action Degisti;
@@ -660,6 +662,12 @@ namespace ZScada
                 noderedPort = Yardim.Tamsayi(d, "NODERED_PORT", 4731);
                 scadaHost = Yardim.Metin(d, "SCADA_HOST", "127.0.0.1");
                 scadaAdres = Yardim.Metin(d, "SCADA_ADRES", "zscada.localhost");
+                guncellemeOrtam.Clear();
+                foreach (string ad in new string[] { "ZSCADA_UPDATE_CHECK", "ZSCADA_UPDATE_REPO", "ZSCADA_UPDATE_API" })
+                {
+                    string v;
+                    if (d.TryGetValue(ad, out v) && !string.IsNullOrEmpty(v)) guncellemeOrtam[ad] = v;
+                }
             }
         }
 
@@ -938,6 +946,7 @@ namespace ZScada
             psi.EnvironmentVariables["SCADA_HOST"] = host;
             psi.EnvironmentVariables["NODERED_URL"] = "http://127.0.0.1:" + nr;
             psi.EnvironmentVariables["VITE_CONFIG_NATIVE_IGNORE_WARNING"] = "true";
+            lock (kilit) { foreach (KeyValuePair<string, string> kv in guncellemeOrtam) psi.EnvironmentVariables[kv.Key] = kv.Value; }
             if (ServisKimligi)
             {
                 // apps/server/src/secrets.ts sir dosyalarini USERDOMAIN\USERNAME hesabina birakir; servis
@@ -1458,6 +1467,7 @@ namespace ZScada
         public int Renk { get { lock (kilit) { return renk; } } }
         public string DurumMetni { get { lock (kilit) { return durumMetni; } } }
         public string Url { get { lock (kilit) { return "http://" + scadaAdres + ":" + scadaPort; } } }
+        public int ScadaPort { get { lock (kilit) { return scadaPort; } } }
 
         public bool BaslatEtkin { get { lock (kilit) { return durumBilinen && durum == ServiceControllerStatus.Stopped; } } }
         public bool DurdurEtkin
@@ -1682,6 +1692,9 @@ namespace ZScada
     sealed class ServisTepsiBaglami : ApplicationContext
     {
         readonly ServisIzleyici iz;
+        readonly GuncellemeIzleyici gi;
+        readonly ToolStripMenuItem miGuncelle;
+        readonly ToolStripSeparator ayGuncelle;
         readonly NotifyIcon ni;
         readonly ContextMenuStrip menu;
         readonly ToolStripMenuItem miDurum;
@@ -1720,10 +1733,18 @@ namespace ZScada
             miLog.Click += delegate { LogKlasoruAc(); };
             ToolStripMenuItem miCik = new ToolStripMenuItem("Tepsiden çık (servis çalışmaya devam eder)");
             miCik.Click += delegate { CikisIste(); };
+            // Yalniz dogrulanmis (SHA-256) yeni surum varken gorunur; tiklama onay ister, kendiliginden kurmaz.
+            miGuncelle = new ToolStripMenuItem("Güncellemeyi kur");
+            miGuncelle.Visible = false;
+            miGuncelle.Click += delegate { gi.KurIstegi(); };
+            ayGuncelle = new ToolStripSeparator();
+            ayGuncelle.Visible = false;
 
             menu = new ContextMenuStrip();
             menu.Items.Add(miAc);
             menu.Items.Add(miDurum);
+            menu.Items.Add(ayGuncelle);
+            menu.Items.Add(miGuncelle);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(miBaslat);
             menu.Items.Add(miDurdur);
@@ -1757,6 +1778,23 @@ namespace ZScada
 
             iz.Baslat();
             if (pencereAc) iz.AcIstegi();
+
+            gi = new GuncellemeIzleyici(delegate { return iz.ScadaPort; });
+            gi.Degisti = delegate { UiyeGonder(new MethodInvoker(Guncelle)); };
+            gi.BalonGoster = delegate(string baslik, string metin)
+            {
+                UiyeGonder(new MethodInvoker(delegate { ni.ShowBalloonTip(10000, baslik, metin, ToolTipIcon.Info); }));
+            };
+            gi.Onayla = delegate(string soru)
+            {
+                return MessageBox.Show(soru, "Z SCADA güncellemesi", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+            };
+            gi.HataKutusu = delegate(string mesaj)
+            {
+                UiyeGonder(new MethodInvoker(delegate { MessageBox.Show(mesaj, "Z SCADA güncellemesi", MessageBoxButtons.OK, MessageBoxIcon.Error); }));
+            };
+            gi.Baslat();
         }
 
         void UiyeGonder(MethodInvoker m)
@@ -1796,6 +1834,7 @@ namespace ZScada
             if (cikisBasladi) return;
             cikisBasladi = true;
             iz.Dur();
+            gi.Dur();
             ni.Visible = false;
             ni.Dispose();
             ExitThread();
@@ -1820,6 +1859,540 @@ namespace ZScada
             miBaslat.Enabled = iz.BaslatEtkin;
             miDurdur.Enabled = iz.DurdurEtkin;
             miYeniden.Enabled = iz.YenidenEtkin;
+            GuncellemeSonucu g = gi == null ? null : gi.Sonuc;
+            bool goster = g != null && g.Var && g.Dogrulandi;
+            miGuncelle.Visible = goster;
+            ayGuncelle.Visible = goster;
+            miGuncelle.Enabled = goster && !gi.Kuruluyor;
+            if (goster) miGuncelle.Text = gi.Kuruluyor ? "Güncelleme indiriliyor… (" + g.Son + ")" : "Güncellemeyi kur (" + g.Son + ")";
+        }
+    }
+
+    // ---------------------------------------------------------------- guncelleme (0.6.0)
+
+    // Tepsinin guncelleme denetimi. Sunucuyla ayni kurallar (apps/server/src/update.ts): GitHub releases/latest,
+    // yalniz kararli vX.Y.Z, taslak/on surum yok, asset ^Z-SCADA-Kurulum-.*\.exe$, SHA-256 asset "digest" alanindan
+    // (sha256:<hex>), yoksa yayin govdesindeki "SHA-256:" satirindan; ikisi de yoksa DOGRULANMAMIS: kurulum sunulmaz.
+    // Istek: duz GET, Accept + User-Agent Z-SCADA/<surum>; kurulumu tanitan hicbir bilgi gitmez.
+    // Kapatma: tepsi GitHub'a yalniz yerel sunucu /api/update/public "available" dediginde gider; sunucu ayari
+    // (Ayarlar -> Guncellemeler) ya da ayarlar.ps1'deki $ZSCADA_UPDATE_CHECK = 0 kapaliysa hic gitmez.
+    // Kurulum asla kendiliginden yapilmaz: onay -> indir (HTTPS, TLS 1.2+) -> SHA-256 dogrula -> runas ile kurucu.
+    sealed class GuncellemeSonucu
+    {
+        public string Mevcut;
+        public string Son;
+        public bool Var;          // Son > Mevcut
+        public bool Dogrulandi;   // asset + SHA-256 var
+        public string AssetAd;
+        public string AssetUrl;
+        public long Boyut;
+        public string Sha256;
+        public string Hata;
+
+        public string Karar()
+        {
+            if (Hata != null) return "HATA: " + Hata;
+            if (!Var) return "GUNCEL: kurulu " + Mevcut + ", son yayin " + (Son ?? "-");
+            if (!Dogrulandi) return "DOGRULANMADI: " + Son + " yayinlanmis ama " + (AssetUrl == null ? "kurulum dosyasi yok" : "SHA-256 ozeti yok") + "; tek tik kurulum sunulmaz";
+            return "GUNCELLEME VAR: " + Mevcut + " -> " + Son + " (" + AssetAd + ", " + Boyut + " bayt, sha256 " + Sha256 + ")";
+        }
+    }
+
+    static class Guncelleme
+    {
+        public const string VarsayilanApi = "https://api.github.com";
+        public const string VarsayilanDepo = "canzayimler/Z-SCADA";
+        public const string KurucuArgumanlari = "/SILENT /SUPPRESSMSGBOXES /NORESTART /ZSCADATEPSI=1";
+        static readonly Regex AssetDesen = new Regex(@"^Z-SCADA-Kurulum-.*\.exe$");
+        static readonly Regex SurumDesen = new Regex(@"^v?(\d{1,6})\.(\d{1,6})\.(\d{1,6})$");
+        static readonly Regex Hex64 = new Regex("^[0-9a-f]{64}$");
+        const long AzamiBoyut = 1024L * 1024 * 1024;
+
+        // .NET 4.x varsayilani TLS 1.0 olabilir; GitHub TLS 1.2+ ister. Tls13 (12288) eski cercevede yoksa yalniz 1.2.
+        public static void TlsAc()
+        {
+            try { ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | (SecurityProtocolType)12288; }
+            catch (NotSupportedException) { ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; }
+        }
+
+        public static int[] SurumCoz(string s)
+        {
+            if (s == null) return null;
+            Match m = SurumDesen.Match(s.Trim());
+            if (!m.Success) return null;
+            return new int[] { int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value) };
+        }
+
+        // a<b negatif, esit 0, a>b pozitif; gecersizse null.
+        public static int? Karsilastir(string a, string b)
+        {
+            int[] x = SurumCoz(a), y = SurumCoz(b);
+            if (x == null || y == null) return null;
+            for (int i = 0; i < 3; i++) if (x[i] != y[i]) return x[i] - y[i];
+            return 0;
+        }
+
+        // Yalniz https; loopback icin http (yerel sahte API ile sinama).
+        public static bool GuvenliUrl(string url)
+        {
+            Uri u;
+            if (string.IsNullOrEmpty(url) || url.Length > 2048 || !Uri.TryCreate(url, UriKind.Absolute, out u)) return false;
+            if (u.Scheme == Uri.UriSchemeHttps) return true;
+            return u.Scheme == Uri.UriSchemeHttp && u.IsLoopback;
+        }
+
+        // Kurulu surum: app\package.json "version" (uygulamanin tek surum kaynagi).
+        public static string KuruluSurum()
+        {
+            try
+            {
+                string pkg = Path.Combine(Yol.App, "package.json");
+                Match m = Regex.Match(File.ReadAllText(pkg, Encoding.UTF8), "\"version\"\\s*:\\s*\"(\\d+\\.\\d+\\.\\d+)\"");
+                return m.Success ? m.Groups[1].Value : null;
+            }
+            catch { return null; }
+        }
+
+        static Dictionary<string, string> Ayarlar()
+        {
+            try { if (File.Exists(Yol.Ayar)) return Yardim.AyarOku(Yol.Ayar); }
+            catch { }
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // ayarlar.ps1: $ZSCADA_UPDATE_CHECK = 0 -> kapali (sunucuya da ayni deger ortam degiskeni olarak gecer).
+        public static bool AyarKapali()
+        {
+            string v;
+            return Ayarlar().TryGetValue("ZSCADA_UPDATE_CHECK", out v) && Regex.IsMatch(v.Trim(), "^(0|false|off|no)$", RegexOptions.IgnoreCase);
+        }
+
+        public static string ApiTabani()
+        {
+            string v = Yardim.Metin(Ayarlar(), "ZSCADA_UPDATE_API", VarsayilanApi).TrimEnd('/');
+            return GuvenliUrl(v) ? v : VarsayilanApi;
+        }
+
+        public static string Depo()
+        {
+            string v = Yardim.Metin(Ayarlar(), "ZSCADA_UPDATE_REPO", VarsayilanDepo);
+            return Regex.IsMatch(v, @"^[\w.-]+/[\w.-]+$") ? v : VarsayilanDepo;
+        }
+
+        static HttpWebRequest Istek(string url, string mevcut, int zamanAsimiMs)
+        {
+            HttpWebRequest istek = (HttpWebRequest)WebRequest.Create(url);
+            istek.Method = "GET";
+            istek.Timeout = zamanAsimiMs;
+            istek.ReadWriteTimeout = zamanAsimiMs;
+            istek.AllowAutoRedirect = false; // yonlendirme elle izlenir: https'ten cikilmasin
+            istek.UserAgent = "Z-SCADA/" + (mevcut ?? "0.0.0");
+            if (new Uri(url).IsLoopback) istek.Proxy = null;
+            return istek;
+        }
+
+        // GET + en fazla 5 yonlendirme; her adim GuvenliUrl. Cagiran yaniti kapatir.
+        static HttpWebResponse Al(string url, string mevcut, int zamanAsimiMs, string accept)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                if (!GuvenliUrl(url)) throw new Exception("Güvenli olmayan adres reddedildi: " + url);
+                HttpWebRequest istek = Istek(url, mevcut, zamanAsimiMs);
+                if (accept != null) istek.Accept = accept;
+                HttpWebResponse yanit;
+                try { yanit = (HttpWebResponse)istek.GetResponse(); }
+                catch (WebException ex)
+                {
+                    HttpWebResponse hr = ex.Response as HttpWebResponse;
+                    if (hr != null) { int k = (int)hr.StatusCode; hr.Close(); throw new Exception("HTTP " + k); }
+                    throw new Exception(ex.Status == WebExceptionStatus.Timeout ? "Zaman aşımı" : ex.Message);
+                }
+                int kod = (int)yanit.StatusCode;
+                if (kod >= 300 && kod < 400)
+                {
+                    string yer = yanit.Headers["Location"];
+                    yanit.Close();
+                    if (string.IsNullOrEmpty(yer)) throw new Exception("HTTP " + kod + " (Location yok)");
+                    url = new Uri(new Uri(url), yer).ToString();
+                    continue;
+                }
+                return yanit;
+            }
+            throw new Exception("Çok fazla yönlendirme");
+        }
+
+        static string Metin(Dictionary<string, object> d, string ad)
+        {
+            object v;
+            return d != null && d.TryGetValue(ad, out v) ? v as string : null;
+        }
+
+        static bool Dogru(Dictionary<string, object> d, string ad)
+        {
+            object v;
+            return d != null && d.TryGetValue(ad, out v) && v is bool && (bool)v;
+        }
+
+        // releases/latest JSON'unu cozer (sunucudaki parseRelease ile ayni kurallar). Sinanabilir olsun diye ayri.
+        public static GuncellemeSonucu Coz(string json, string mevcut)
+        {
+            GuncellemeSonucu s = new GuncellemeSonucu();
+            s.Mevcut = mevcut;
+            Dictionary<string, object> kok;
+            try
+            {
+                System.Web.Script.Serialization.JavaScriptSerializer js = new System.Web.Script.Serialization.JavaScriptSerializer();
+                js.MaxJsonLength = 8 * 1024 * 1024;
+                kok = js.DeserializeObject(json) as Dictionary<string, object>;
+            }
+            catch (Exception ex) { s.Hata = "Yanıt çözülemedi: " + ex.Message; return s; }
+            if (kok == null) { s.Hata = "Yanıt çözülemedi"; return s; }
+            if (Dogru(kok, "draft") || Dogru(kok, "prerelease")) { s.Hata = "Taslak veya ön sürüm"; return s; }
+            int[] v = SurumCoz(Metin(kok, "tag_name"));
+            if (v == null) { s.Hata = "Sürüm etiketi çözülemedi"; return s; }
+            s.Son = v[0] + "." + v[1] + "." + v[2];
+            int? k = Karsilastir(s.Son, mevcut);
+            s.Var = k.HasValue && k.Value > 0;
+
+            object ham;
+            object[] assets = kok.TryGetValue("assets", out ham) ? ham as object[] : null;
+            if (assets != null)
+            {
+                foreach (object o in assets)
+                {
+                    Dictionary<string, object> a = o as Dictionary<string, object>;
+                    string ad = Metin(a, "name");
+                    if (ad == null || !AssetDesen.IsMatch(ad)) continue;
+                    string url = Metin(a, "browser_download_url");
+                    if (!GuvenliUrl(url)) break;
+                    s.AssetAd = ad;
+                    s.AssetUrl = url;
+                    object boyut;
+                    if (a.TryGetValue("size", out boyut) && boyut != null)
+                    {
+                        long b;
+                        if (long.TryParse(Convert.ToString(boyut, System.Globalization.CultureInfo.InvariantCulture), out b) && b > 0) s.Boyut = b;
+                    }
+                    string digest = Metin(a, "digest");
+                    Match dm = digest == null ? Match.Empty : Regex.Match(digest.Trim(), "^sha256:([0-9a-fA-F]{64})$");
+                    if (dm.Success) s.Sha256 = dm.Groups[1].Value.ToLowerInvariant();
+                    else
+                    {
+                        string govde = Metin(kok, "body");
+                        Match bm = govde == null ? Match.Empty : Regex.Match(govde, @"SHA-?256\s*:\s*`?([0-9a-fA-F]{64})\b");
+                        if (bm.Success) s.Sha256 = bm.Groups[1].Value.ToLowerInvariant();
+                    }
+                    break;
+                }
+            }
+            s.Dogrulandi = s.AssetUrl != null && s.Sha256 != null && Hex64.IsMatch(s.Sha256);
+            return s;
+        }
+
+        // GitHub'a duz GET (10 sn). Hata sessizdir: sonuc.Hata doldurulur, istisna atilmaz.
+        public static GuncellemeSonucu Denetle(string apiTabani, string depo, string mevcut)
+        {
+            GuncellemeSonucu s = new GuncellemeSonucu();
+            s.Mevcut = mevcut;
+            if (SurumCoz(mevcut) == null) { s.Hata = "Kurulu sürüm okunamadı"; return s; }
+            try
+            {
+                TlsAc();
+                string url = apiTabani.TrimEnd('/') + "/repos/" + depo + "/releases/latest";
+                using (HttpWebResponse yanit = Al(url, mevcut, 10000, "application/vnd.github+json"))
+                using (StreamReader r = new StreamReader(yanit.GetResponseStream(), Encoding.UTF8))
+                {
+                    char[] tampon = new char[8 * 1024 * 1024];
+                    int n = 0, oku;
+                    while (n < tampon.Length && (oku = r.Read(tampon, n, tampon.Length - n)) > 0) n += oku;
+                    return Coz(new string(tampon, 0, n), mevcut);
+                }
+            }
+            catch (Exception ex) { s.Hata = ex.Message; return s; }
+        }
+
+        public static string IndirmeKlasoru()
+        {
+            return Path.Combine(Path.GetTempPath(), "ZScada-Guncelleme");
+        }
+
+        static string Hex(byte[] b)
+        {
+            StringBuilder sb = new StringBuilder(b.Length * 2);
+            foreach (byte x in b) sb.Append(x.ToString("x2"));
+            return sb.ToString();
+        }
+
+        public static string DosyaSha256(Stream st)
+        {
+            st.Position = 0;
+            using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+                return Hex(sha.ComputeHash(st));
+        }
+
+        // Kullaniciya ozel gecici klasore indirir (once .part), SHA-256'yi dogrular. Dogrulanmamis veya uyusmayan
+        // dosya silinir ve null doner (hata metni "hata"da). Basariliysa dosya YAZMAYA KILITLI acik akisla doner:
+        // dogrulama ile kurucunun baslatilmasi arasinda dosya degistirilemesin (cagiran kapatir).
+        public static FileStream IndirVeDogrula(GuncellemeSonucu s, out string yol, out string hata)
+        {
+            yol = null;
+            hata = null;
+            if (s == null || !s.Var || !s.Dogrulandi) { hata = "Doğrulanmış bir güncelleme yok; kurulum reddedildi."; return null; }
+            string klasor = IndirmeKlasoru();
+            string ad = Path.GetFileName(s.AssetAd);
+            if (string.IsNullOrEmpty(ad) || !AssetDesen.IsMatch(ad)) { hata = "Geçersiz dosya adı."; return null; }
+            string hedef = Path.Combine(klasor, ad);
+            string parca = hedef + ".part";
+            try
+            {
+                TlsAc();
+                Directory.CreateDirectory(klasor);
+                if (File.Exists(parca)) File.Delete(parca);
+                if (File.Exists(hedef)) File.Delete(hedef);
+                long toplam = 0;
+                using (HttpWebResponse yanit = Al(s.AssetUrl, s.Mevcut, 60000, "application/octet-stream"))
+                using (Stream giris = yanit.GetResponseStream())
+                using (FileStream cikis = new FileStream(parca, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    byte[] tampon = new byte[81920];
+                    int n;
+                    while ((n = giris.Read(tampon, 0, tampon.Length)) > 0)
+                    {
+                        toplam += n;
+                        if (toplam > AzamiBoyut || (s.Boyut > 0 && toplam > s.Boyut)) throw new Exception("Dosya beklenenden büyük.");
+                        cikis.Write(tampon, 0, n);
+                    }
+                }
+                if (s.Boyut > 0 && toplam != s.Boyut) throw new Exception("Dosya boyutu uyuşmuyor (" + toplam + " / " + s.Boyut + " bayt).");
+                File.Move(parca, hedef);
+                FileStream kilitli = new FileStream(hedef, FileMode.Open, FileAccess.Read, FileShare.Read);
+                string gercek = DosyaSha256(kilitli);
+                if (gercek != s.Sha256)
+                {
+                    kilitli.Dispose();
+                    try { File.Delete(hedef); } catch { }
+                    hata = "SHA-256 uyuşmuyor: beklenen " + s.Sha256 + ", indirilen " + gercek + ". Dosya silindi, kurulum reddedildi.";
+                    return null;
+                }
+                yol = hedef;
+                return kilitli;
+            }
+            catch (Exception ex)
+            {
+                try { if (File.Exists(parca)) File.Delete(parca); } catch { }
+                hata = "İndirilemedi: " + ex.Message;
+                return null;
+            }
+        }
+
+        // Kurucuyu yonetici olarak baslatir (Windows UAC sorar). Iptal: false + "hata".
+        public static bool KurucuyuBaslat(string yol, out string hata)
+        {
+            hata = null;
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo(yol, KurucuArgumanlari);
+                psi.UseShellExecute = true;
+                psi.Verb = "runas";
+                psi.WorkingDirectory = Path.GetDirectoryName(yol);
+                Process p = Process.Start(psi);
+                if (p != null) p.Dispose();
+                return true;
+            }
+            catch (Win32Exception ex)
+            {
+                hata = ex.NativeErrorCode == 1223 ? "Yönetici onayı verilmedi; kurulum başlamadı." : ex.Message;
+                return false;
+            }
+            catch (Exception ex) { hata = ex.Message; return false; }
+        }
+
+        // Yerel sunucunun kimliksiz ozeti: {"available":bool,"latest":"x.y.z"|null}. Ulasilamazsa null.
+        public static string YerelSonSurum(int port, out bool ulasildi)
+        {
+            ulasildi = false;
+            try
+            {
+                HttpWebRequest istek = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + "/api/update/public");
+                istek.Proxy = null;
+                istek.Timeout = 3000;
+                istek.ReadWriteTimeout = 3000;
+                istek.KeepAlive = false;
+                istek.UserAgent = "ZScada-Tepsi";
+                using (HttpWebResponse yanit = (HttpWebResponse)istek.GetResponse())
+                using (StreamReader r = new StreamReader(yanit.GetResponseStream(), Encoding.UTF8))
+                {
+                    Dictionary<string, object> d = new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(r.ReadToEnd()) as Dictionary<string, object>;
+                    ulasildi = d != null;
+                    if (!Dogru(d, "available")) return null;
+                    string son = Metin(d, "latest");
+                    return SurumCoz(son) != null ? son : null;
+                }
+            }
+            catch { return null; }
+        }
+
+        // Bir surum icin tek balon: kullanici basina dosyada son bildirilen surum tutulur.
+        static string BildirimDosyasi()
+        {
+            return Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DVP-SCADA"), "guncelleme-bildirildi.txt");
+        }
+
+        public static bool IlkKezBildir(string surum)
+        {
+            try
+            {
+                string f = BildirimDosyasi();
+                if (File.Exists(f) && File.ReadAllText(f).Trim() == surum) return false;
+                Directory.CreateDirectory(Path.GetDirectoryName(f));
+                File.WriteAllText(f, surum, new UTF8Encoding(false));
+            }
+            catch { }
+            return true;
+        }
+    }
+
+    // Tepsideki guncelleme akisi: yerel sunucuyu 30 dk'da bir (ilk 2 dk sonra) yoklar; sunucu yeni surum diyorsa
+    // GitHub'a kendisi sorar (URL/SHA'yi yerelden almaz), dogrulanmis guncelleme varsa menu ogesi + tek balon.
+    sealed class GuncellemeIzleyici
+    {
+        readonly object kilit = new object();
+        readonly Func<int> port;
+        System.Threading.Timer zamanlayici;
+        int yoklaniyor;
+        int kuruluyor;
+        string denetlenenSurum;
+        GuncellemeSonucu sonuc;
+
+        public Action Degisti;
+        public Action<string, string> BalonGoster;
+        public Func<string, bool> Onayla;          // UI ipliginde evet/hayir
+        public Action<string> HataKutusu;
+
+        public GuncellemeIzleyici(Func<int> port) { this.port = port; }
+
+        public GuncellemeSonucu Sonuc { get { lock (kilit) { return sonuc; } } }
+        public bool Kuruluyor { get { return kuruluyor == 1; } }
+
+        public void Baslat() { zamanlayici = new System.Threading.Timer(Yokla, null, 120000, 1800000); }
+
+        public void Dur()
+        {
+            System.Threading.Timer z = zamanlayici;
+            zamanlayici = null;
+            if (z != null) { try { z.Dispose(); } catch { } }
+        }
+
+        void Duyur() { Action a = Degisti; if (a != null) { try { a(); } catch { } } }
+
+        void Yokla(object o)
+        {
+            if (Interlocked.Exchange(ref yoklaniyor, 1) == 1) return;
+            try
+            {
+                GuncellemeSonucu yeni = null;
+                if (!Guncelleme.AyarKapali())
+                {
+                    bool ulasildi;
+                    string son = Guncelleme.YerelSonSurum(port(), out ulasildi);
+                    if (son != null)
+                    {
+                        lock (kilit) { if (son == denetlenenSurum) yeni = sonuc; }
+                        if (yeni == null)
+                        {
+                            yeni = Guncelleme.Denetle(Guncelleme.ApiTabani(), Guncelleme.Depo(), Guncelleme.KuruluSurum());
+                            Gunluk.Yaz("Güncelleme denetimi: " + yeni.Karar());
+                            lock (kilit) { denetlenenSurum = son; }
+                        }
+                    }
+                    else if (!ulasildi)
+                    {
+                        lock (kilit) { yeni = sonuc; } // sunucu gecici olarak kapali: son bilinen kalsin
+                    }
+                }
+                bool degisti;
+                lock (kilit)
+                {
+                    string eski = sonuc != null && sonuc.Var && sonuc.Dogrulandi ? sonuc.Son : null;
+                    sonuc = yeni != null && yeni.Hata == null ? yeni : null;
+                    string simdi = sonuc != null && sonuc.Var && sonuc.Dogrulandi ? sonuc.Son : null;
+                    degisti = eski != simdi;
+                    if (yeni != null && yeni.Hata != null) denetlenenSurum = null; // hata: sonraki turda yeniden dene
+                }
+                if (degisti) Duyur();
+                GuncellemeSonucu s = Sonuc;
+                if (s != null && s.Var && s.Dogrulandi && Guncelleme.IlkKezBildir(s.Son))
+                {
+                    Action<string, string> b = BalonGoster;
+                    if (b != null) b("Z SCADA " + s.Son + " yayınlandı", "Kurmak için tepsi simgesine sağ tıklayın → Güncellemeyi kur. Veriler korunur.");
+                }
+            }
+            catch (Exception ex) { Gunluk.Yaz("Güncelleme yoklaması hatası: " + ex.Message); }
+            finally { Interlocked.Exchange(ref yoklaniyor, 0); }
+        }
+
+        // UI ipliginden cagrilir: onay -> arka planda indir/dogrula/baslat.
+        public void KurIstegi()
+        {
+            GuncellemeSonucu s = Sonuc;
+            if (s == null || !s.Var || !s.Dogrulandi || kuruluyor == 1) return;
+            string soru = "Z SCADA " + s.Son + " kurulsun mu? (Kurulu: " + s.Mevcut + ")\r\n\r\n" +
+                "Kurulum dosyası GitHub'dan indirilir ve SHA-256 özeti doğrulanır; ardından Windows yönetici onayı ister.\r\n" +
+                "Kurulum sırasında Z SCADA servisi birkaç dakika durur (operatör ekranları veri almaz). Veriler, ayarlar ve kullanıcılar korunur.";
+            Func<string, bool> onay = Onayla;
+            if (onay == null || !onay(soru)) { Gunluk.Yaz("Güncelleme kurulumu kullanıcı tarafından iptal edildi."); return; }
+            if (Interlocked.Exchange(ref kuruluyor, 1) == 1) return;
+            Duyur();
+            ThreadPool.QueueUserWorkItem(delegate(object o)
+            {
+                string hata = null;
+                try
+                {
+                    // Taze denetim: URL ve SHA tiklama anindaki yayindan gelsin.
+                    GuncellemeSonucu taze = Guncelleme.Denetle(Guncelleme.ApiTabani(), Guncelleme.Depo(), Guncelleme.KuruluSurum());
+                    Gunluk.Yaz("Güncelleme kurulumu: " + taze.Karar());
+                    if (taze.Hata != null) { hata = "GitHub'a ulaşılamadı: " + taze.Hata; return; }
+                    if (!taze.Var || !taze.Dogrulandi) { hata = "Doğrulanmış bir güncelleme bulunamadı; kurulum yapılmadı."; return; }
+                    string yol;
+                    using (FileStream kilitli = Guncelleme.IndirVeDogrula(taze, out yol, out hata))
+                    {
+                        if (kilitli == null) { Gunluk.Yaz("Güncelleme reddedildi: " + hata); return; }
+                        Gunluk.Yaz("İndirildi ve SHA-256 doğrulandı: " + yol + " (" + taze.Sha256 + ")");
+                        Gunluk.Yaz("Kurucu başlatılıyor (runas): " + yol + " " + Guncelleme.KurucuArgumanlari);
+                        if (!Guncelleme.KurucuyuBaslat(yol, out hata)) { Gunluk.Yaz("Kurucu başlatılamadı: " + hata); return; }
+                        Gunluk.Yaz("Kurucu başladı; tepsi kurulum sırasında kapanır ve kurulumdan sonra yeniden açılır.");
+                    }
+                }
+                catch (Exception ex) { hata = ex.Message; Gunluk.Yaz("Güncelleme kurulumu hatası: " + ex); }
+                finally
+                {
+                    Interlocked.Exchange(ref kuruluyor, 0);
+                    Duyur();
+                    if (hata != null) { Action<string> k = HataKutusu; if (k != null) k("Güncelleme kurulamadı.\r\n\r\n" + hata); }
+                }
+            });
+        }
+
+        // --guncelleme-denetle <apiTabani> [--indir] [--surum x.y.z]: kararı yazar ve cikar; kurucu ASLA baslatilmaz.
+        // Cikis: 0 guncel, 10 dogrulanmis guncelleme, 11 dogrulanmamis, 20 indirildi+SHA dogru, 21 indirme/SHA reddi, 1 hata.
+        public static int Teshis(string apiTabani, bool indir, string surum)
+        {
+            string mevcut = surum ?? Guncelleme.KuruluSurum();
+            Console.WriteLine("Kurulu surum: " + (mevcut ?? "(okunamadi)") + " · API: " + apiTabani + " · depo: " + Guncelleme.Depo());
+            if (!Guncelleme.GuvenliUrl(apiTabani)) { Console.WriteLine("HATA: API adresi https (ya da loopback http) olmali."); return 1; }
+            GuncellemeSonucu s = Guncelleme.Denetle(apiTabani, Guncelleme.Depo(), mevcut);
+            Console.WriteLine("KARAR: " + s.Karar());
+            if (s.Hata != null) return 1;
+            if (!s.Var) return 0;
+            if (!indir) return s.Dogrulandi ? 10 : 11;
+            string yol, hata;
+            using (FileStream f = Guncelleme.IndirVeDogrula(s, out yol, out hata))
+            {
+                if (f == null) { Console.WriteLine("REDDEDILDI: " + hata); return 21; }
+                Console.WriteLine("INDIRILDI VE SHA-256 DOGRULANDI: " + yol + " (kurucu baslatilmadi: teshis kipi)");
+            }
+            try { File.Delete(yol); } catch { }
+            return 20;
         }
     }
 
@@ -1839,8 +2412,8 @@ namespace ZScada
         [STAThread]
         static int Main(string[] args)
         {
-            bool durdur = false, arkaplan = false, etkinlestir = false, servis = false, konsol = false;
-            string veri = null;
+            bool durdur = false, arkaplan = false, etkinlestir = false, servis = false, konsol = false, gTeshis = false, gIndir = false;
+            string veri = null, gApi = null, gSurum = null;
             for (int i = 0; i < args.Length; i++)
             {
                 string k = args[i].Trim().ToLowerInvariant();
@@ -1850,9 +2423,19 @@ namespace ZScada
                 else if (k == "--servis") servis = true;
                 else if (k == "--servis-konsol") konsol = true;
                 else if (k == "--veri" && i + 1 < args.Length) veri = args[++i].Trim();
+                else if (k == "--guncelleme-denetle" && i + 1 < args.Length) { gTeshis = true; gApi = args[++i].Trim(); }
+                else if (k == "--indir") gIndir = true;
+                else if (k == "--surum" && i + 1 < args.Length) gSurum = args[++i].Trim();
             }
 
             Yol.Hazirla(veri);
+
+            // Teshis: guncelleme kararini konsola yazar ve cikar (tepsi/servis acilmaz, kurucu ASLA baslatilmaz).
+            if (gTeshis)
+            {
+                Win32.AttachConsole(-1);
+                return GuncellemeIzleyici.Teshis(gApi, gIndir, gSurum);
+            }
 
             if (servis) return ServisCalistir();
             if (konsol) return KonsolServis(etkinlestir);

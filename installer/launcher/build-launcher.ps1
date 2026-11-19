@@ -26,7 +26,7 @@ if (Test-Path -LiteralPath $Output) { Remove-Item -LiteralPath $Output -Force }
 
 & $csc /nologo /target:winexe /codepage:65001 /optimize+ /platform:anycpu /warn:4 `
     "/win32icon:$icon" `
-    /r:System.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.ServiceProcess.dll `
+    /r:System.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.ServiceProcess.dll /r:System.Web.Extensions.dll `
     "/out:$Output" $source
 if ($LASTEXITCODE -ne 0) { throw "ZScada.exe derlemesi basarisiz (csc exit $LASTEXITCODE)" }
 if (-not (Test-Path -LiteralPath $Output)) { throw "ZScada.exe uretilmedi: $Output" }

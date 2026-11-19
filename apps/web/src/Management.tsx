@@ -1,3 +1,4 @@
+import {UpdatePanel} from './UpdatePanel';
 import {ProjectsPanel} from './Projects';
 import {InfoTip} from './InfoTip';
 import { Fragment, useEffect, useRef, useState } from 'react';
@@ -3201,6 +3202,7 @@ export function Management({
  const settingsPage = page === 'settings' && (
   <>
    {user.role === 'admin' && <ProjectsPanel refresh={refresh} notify={notify} />}
+   {user.role === 'admin' && <UpdatePanel notify={notify} />}
    <section className="settings-section">
     <div className="settings-head"><h2>Ekran sürümleri</h2><InfoTip>Her yayın ayrı sürüm olarak saklanır. Eski bir sürüm taslağa geri alınabilir; yayına çıkması için stüdyodan yeniden yayınlanır.</InfoTip></div>
     <div className="screen-settings">

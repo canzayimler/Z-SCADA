@@ -42,6 +42,26 @@ Servis durdurulup silinir; veri klasörünün silinip silinmeyeceği sorulur, va
 Kurulum dosyası bu depodaki kaynaktan `installer\build.ps1` ile üretilir; kendiniz derlemek için:
 [installer/README.md](installer/README.md).
 
+## Güncellemeler
+
+Z SCADA yeni sürümleri kendiliğinden **kurmaz**; yalnız haber verir.
+
+- **Ne zaman, nereye:** sunucu açılıştan yaklaşık 1 dakika sonra ve sonra günde bir kez
+  `https://api.github.com/repos/canzayimler/Z-SCADA/releases/latest` adresine düz bir GET isteği
+  gönderir. İstekte yalnız `User-Agent: Z-SCADA/<sürüm>` vardır; kurulumu, kullanıcıyı veya projeyi
+  tanıtan bilgi gönderilmez. Ulaşılamazsa sessizce bir sonraki güne bırakılır.
+- **Kim görür:** yeni sürüm yalnız yöneticilere üst çubuktaki bildirim simgesinde görünür (sürüm
+  notları ve indirme bağlantısıyla).
+- **Kurulum:** tepsideki Z SCADA simgesi → **Güncellemeyi kur**. Onaydan sonra kurulum dosyası
+  indirilir, SHA-256 özeti yayındaki değerle karşılaştırılır (uyuşmazsa ya da özet yoksa kurulmaz),
+  ardından Windows yönetici onayı istenir. Kurulum sırasında servis birkaç dakika durur; veriler
+  korunur. İsterseniz indirilen `.exe` dosyasını elle de çalıştırabilirsiniz. Tepsi GitHub'a yalnız
+  sunucu yeni sürüm bildirdiğinde sorar.
+- **Kapatma:** Proje ayarları → Güncellemeler → "Yeni sürümleri denetle" işaretini kaldırın, ya da
+  `C:\ProgramData\DVP-SCADA\data\ayarlar.ps1` dosyasına `$ZSCADA_UPDATE_CHECK = 0` satırını ekleyip
+  servisi yeniden başlatın (kaynaktan çalıştırırken ortam değişkeni `ZSCADA_UPDATE_CHECK=0`).
+  Kapalıyken ne sunucu ne tepsi GitHub'a istek gönderir.
+
 ## Görseller / Screenshots
 
 Tüm görüntüler yerel simülasyon demosundan alınmıştır; her protokol 127.0.0.1 üzerindeki bir
@@ -196,6 +216,12 @@ read-back afterwards.
   serves http://localhost:4730; the first `admin` password is written to
   `C:\ProgramData\DVP-SCADA\data\admin-access.json` (readable by administrators only). Uninstall from
   Settings → Apps. Build it yourself with `installer\build.ps1` (see `installer/README.md`).
+- **Updates:** once a day (and ~1 min after start) the server sends a plain GET to
+  `api.github.com/repos/canzayimler/Z-SCADA/releases/latest` with only `User-Agent: Z-SCADA/<version>`;
+  nothing identifying the install is sent. Admins see a notice; nothing is installed automatically.
+  Install from the tray icon → "Güncellemeyi kur" (confirmation, SHA-256 check, UAC prompt; data is
+  kept). Turn it off in Project settings → Güncellemeler or with `$ZSCADA_UPDATE_CHECK = 0` in
+  `ayarlar.ps1` / env `ZSCADA_UPDATE_CHECK=0`.
 - **Quick start from source:** Node.js 22.5+, then `npm ci`, `npm run build`, `.\baslat.ps1` (Windows) or
   `npm start` for the server alone. UI at http://localhost:3000. See `KURULUM.md` (Turkish) for
   service install, TLS and redundancy.

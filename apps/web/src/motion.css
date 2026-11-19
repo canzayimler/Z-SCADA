@@ -123,6 +123,9 @@
 .notice-item strong{display:block;font-weight:700;color:var(--txt)}
 .notice-item span{display:block;margin-top:2px;color:var(--txt-soft)}
 .notice-item .btn{margin-top:8px;display:inline-flex;align-items:center;gap:6px}
+.notice-item .notice-links{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px}
+.notice-links a{display:inline-flex;align-items:center;gap:4px;color:var(--acc-text);font-weight:600;text-decoration:none}
+.notice-links a:hover{text-decoration:underline}
 .notice-item.bad{box-shadow:inset 3px 0 0 var(--sym-alarm)}.notice-item.bad svg{color:var(--sym-alarm)}
 .notice-item.warn{box-shadow:inset 3px 0 0 var(--warn-line)}.notice-item.warn svg{color:var(--warn-line)}
 .notice-item.info svg{color:var(--acc-text)}

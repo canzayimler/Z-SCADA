@@ -87,6 +87,10 @@ Name: "{commonstartup}\Z SCADA"; Filename: "{app}\{#MyAppExeName}"; Parameters: 
 [Run]
 ; Parametresiz: tepsiyi baslatir ve (servis hazir olunca) tarayiciyi acar. Servisin kendisini kurulum zaten baslatti.
 Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Description: "Z SCADA'yi uygulama olarak ac"; Flags: postinstall nowait skipifsilent runasoriginaluser
+; Tepsiden baslatilan sessiz guncelleme (ZScada.exe -> /SILENT ... /ZSCADATEPSI=1): PrepareToInstall tepsiyi kapatir;
+; kurulum bitince tepsi kullanicinin oturumunda (yonetici olmadan) yeniden acilir. Baska sessiz kurulumlar (dagitim araclari)
+; bu parametreyi vermez ve tepsi acilmaz.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--arkaplan"; WorkingDir: "{app}"; Flags: nowait runasoriginaluser; Check: TepsidenGuncelleme
 
 [Code]
 const
@@ -105,6 +109,12 @@ procedure KLog(const Msg: String);
 begin
   KurulumLog := KurulumLog + GetDateTimeString('yyyy-mm-dd hh:nn:ss', '-', ':') + '  ' + Msg + #13#10;
   Log(Msg);
+end;
+
+// [Run]: tepsiden baslatilan sessiz guncellemede tepsiyi yeniden ac.
+function TepsidenGuncelleme: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:ZSCADATEPSI|0}') = '1');
 end;
 
 function SysExe(const Name: String): String;
@@ -189,6 +199,9 @@ begin
   KLog('Z SCADA {#MyAppVersion} kurulumu basliyor.');
 
   // 1. Bu kurulumun eski surumu: servisi durdur (gercekten dusene kadar bekle), sonra tepsiyi kapat.
+  //    Calisan servisin ustune yukseltme: sc stop + 30 sn bekleme; durmazsa asagidaki KillStrayTrays servis
+  //    surecini (ZScada.exe --servis) de oldurur ve Job Object (KILL_ON_JOB_CLOSE) node cocuklarini kapatir, boylece
+  //    runtime\node.exe ve app\ dosyalari kilitli kalmaz. Servis KurServis'te sc config + sc start ile geri gelir.
   TrayExe := ExpandConstant('{app}\{#MyAppExeName}');
   if FileExists(TrayExe) then
   begin
