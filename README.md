@@ -6,6 +6,11 @@ Komutlar yazmadan önce denetlenir, yazmadan sonra geri okumayla doğrulanır.
 
 > English summary is at the end of this file.
 
+### ⬇️ [Z SCADA'yı indir (Windows .exe)](https://github.com/canzayimler/Z-SCADA/releases/latest)
+
+**Son sürüm:** [Z-SCADA-Kurulum-0.5.0.exe](https://github.com/canzayimler/Z-SCADA/releases/download/v0.5.0/Z-SCADA-Kurulum-0.5.0.exe)
+· tüm sürümler: [Releases](https://github.com/canzayimler/Z-SCADA/releases) · *Download the Windows installer from Releases.*
+
 ## Kurulum (Windows .exe)
 
 Node.js veya başka bir araç gerekmez; kurulum dosyası her şeyi içerir.
