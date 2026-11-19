@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.local/
+backups/
+output/
+.playwright-cli/
+gateway/node-red/generated/
+paket/
+*.log
+*.sqlite
+*.sqlite-*
+.env
+.env.*
+
+# Yerel ajan/skill kurulumları
+.agents/
+.claude/

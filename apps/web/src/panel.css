@@ -1,0 +1,237 @@
+/* Panelim (Panel.tsx): sabit tuval, pencereye ölçeklenir. Ölçüler tuval pikselidir. */
+.panel-page{
+  --rozet:#eceef1
+}
+[data-theme=dark] .panel-page{
+  --rozet:#22262a
+}
+.panel-head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px 20px;
+  margin-bottom:14px
+}
+.panel-head h1{margin:0 0 2px}
+.panel-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.panel-cols{
+  display:inline-flex;
+  padding:3px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--sunken)
+}
+.panel-cols button{
+  min-width:30px;
+  padding:5px 8px;
+  border:0;
+  border-radius:6px;
+  background:none;
+  color:var(--txt-muted);
+  font:inherit;
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+  cursor:pointer;
+  transition:background var(--motion) var(--ease),color var(--motion) var(--ease)
+}
+.panel-cols button[aria-checked=true]{
+  background:var(--card);
+  color:var(--acc-text);
+  font-weight:600;
+  box-shadow:0 0 0 1px var(--line)
+}
+.panel-viewport{width:100%;overflow:visible}
+.panel-page.is-full{
+  height:100vh;
+  padding:0;
+  background:var(--app);
+  overflow:auto
+}
+.panel-page.is-full .panel-viewport{height:100%;overflow:auto}
+/* overflow:clip — hover'da büyüyen kenar kutusu viewport'u taşırıp kaydırma çubuğu açamaz.
+   Açarsa clientWidth daralır, ölçek yeniden hesaplanır, kutu imlecin altından kayar: titreme. */
+.panel-sizer{position:relative;margin:0 auto;overflow:clip}
+.panel-canvas{position:absolute;left:0;top:0;transform-origin:0 0}
+/* Kutu: düz kart, durum sol kenardaki 4 px çizgide (--state). Zemin yalnız alarmda boyanır. */
+.panel-tile{
+  --state:transparent;
+  --lift:0 0 #0000;
+  position:absolute;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:18px 22px 14px 26px;
+  background:var(--card);
+  border:1px solid var(--line-strong);
+  border-radius:0;
+  overflow:hidden;
+  box-shadow:inset 4px 0 0 var(--state),var(--lift);
+  transition:border-color var(--motion) var(--ease),background var(--motion) var(--ease),left var(--motion-slow) var(--ease),top var(--motion-slow) var(--ease),transform var(--motion) var(--ease),box-shadow var(--motion) var(--ease)
+}
+/* Üzerine gelince hafif büyür ve öne çıkar (kullanıcı tercihi); yerleşim kaymaz (transform). */
+.panel-tile:hover{
+  z-index:2;
+  transform:scale(1.02);
+  border-color:var(--acc-line);
+  --lift:0 12px 28px #10283c24
+}
+[data-theme=dark] .panel-tile:hover{--lift:0 12px 28px #00000073}
+.panel-tile header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.ptile-title{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:13px;color:var(--txt)}
+.ptile-title strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:20px;
+  font-weight:600;
+  color:var(--txt)
+}
+.ptile-title small{font-family:Consolas,monospace;font-size:12px;letter-spacing:.02em;color:var(--txt-muted)}
+.panel-reading{
+  display:flex;
+  flex:1;
+  align-items:center;
+  gap:14px;
+  min-width:0
+}
+.panel-reading b{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:56px;
+  line-height:1;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  color:var(--txt);
+  transition:color var(--motion) var(--ease)
+}
+.panel-reading span{font-size:22px;color:var(--txt-muted)}
+/* Alt satır: güncelse sönük "Güncel", sorunluysa neden + son verinin yaşı (renk durum sınıfından). */
+.panel-tile footer{min-height:18px;font-size:13px;font-weight:500;letter-spacing:.02em;color:var(--txt-faint)}
+.panel-tile.unknown footer,.panel-tile.stale footer,.panel-tile.bad footer{font-weight:600}
+/* Başlıktaki durum özeti: kare + sayı + ad. */
+.panel-summary{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:13px;color:var(--txt-soft)}
+.panel-summary span{display:inline-flex;align-items:center;gap:6px}
+.panel-summary i{width:8px;height:8px;border-radius:2px;background:var(--txt-faint)}
+.panel-summary .ps-run i{background:var(--run)}
+.panel-summary .ps-stop i{background:var(--sym-idle)}
+.panel-summary .ps-bad i{background:var(--sym-alarm)}
+.panel-summary .ps-stale i,.panel-summary .ps-unknown i{background:var(--warn-line)}
+.panel-summary .ps-value{color:var(--txt-faint)}
+.panel-lamp{
+  flex:none;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:3px solid var(--sym-idle);
+  background:transparent;
+  transition:background var(--motion) var(--ease),border-color var(--motion) var(--ease),box-shadow var(--motion) var(--ease),transform var(--motion) var(--ease)
+}
+.panel-tile.run{--state:var(--run)}
+.panel-tile.run .panel-reading b{color:var(--run)}
+.panel-tile.run .panel-lamp{background:var(--run);border-color:var(--run)}
+.panel-tile.stop{--state:var(--sym-idle)}
+.panel-tile.stop .panel-reading b{color:var(--txt-soft)}
+.panel-tile.unknown,.panel-tile.stale{--state:var(--warn-line)}
+.panel-tile.unknown .panel-reading b,.panel-tile.stale .panel-reading b{color:var(--txt-faint)}
+.panel-tile.unknown footer,.panel-tile.stale footer{color:var(--warn-text)}
+.panel-tile.bad{--state:var(--sym-alarm);background:color-mix(in srgb,var(--sym-alarm) 6%,var(--card))}
+.panel-tile.bad footer{color:var(--sym-alarm)}
+/* Renk tek başına konuşmaz: kalite sorununda lamba kesik çizgi. */
+.panel-tile.unknown .panel-lamp,.panel-tile.stale .panel-lamp,.panel-tile.bad .panel-lamp{border-style:dashed}
+.panel-picker{min-width:260px}
+.panel-picker .search-select{width:100%}
+/* Kart rengi: yalnız üst şerit (gruplama). Zemin boyanmaz; durum sol çizgide ayrıca görünür. */
+.panel-tile.tinted::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--tile-color)}
+/* İkon rozeti (Rozet seti): açık gri kare; RUN'da açık yeşil zemin + yeşil ikon ve türüne göre hareket
+   (Dengeli): dönen döner, motor/pompa nabız atar, konveyör bandı akar, lamba/uyarı parlar. Analogda kart renginde sabit. */
+.panel-icon{
+  flex:none;
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  border-radius:8px;
+  background:var(--rozet);
+  color:var(--txt-faint);
+  transition:color var(--motion-slow) var(--ease),background var(--motion-slow) var(--ease)
+}
+.panel-tile.value .panel-icon{color:var(--tile-color,var(--acc-text))}
+.panel-icon.on{color:var(--run);background:var(--run-bg)}
+.panel-icon.on.m-spin svg{animation:pi-spin 1.6s linear infinite}
+.panel-icon.on.m-pulse svg{animation:pi-pulse 1.6s var(--ease) infinite}
+.panel-icon.on.m-slide svg{animation:pi-slide 1.6s var(--ease) infinite alternate}
+.panel-icon.on.m-belt .belt{stroke-dasharray:3 2.2;animation:pi-belt .8s linear infinite}
+.panel-icon.on.m-glow{animation:pi-glow 1.6s ease-in-out infinite}
+@keyframes pi-spin{to{transform:rotate(360deg)}}
+@keyframes pi-pulse{50%{transform:scale(1.1)}}
+@keyframes pi-slide{from{transform:translateX(-2px)}to{transform:translateX(2px)}}
+@keyframes pi-belt{to{stroke-dashoffset:-5.2}}
+@keyframes pi-glow{50%{background:var(--run-line)}}
+/* Durum değişince lamba küçükten açılır (lamba duruma göre yeniden kurulur). */
+.panel-lamp{animation:pi-lamp var(--motion) var(--ease)}
+@keyframes pi-lamp{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+/* Düzenleme: kutuya tıkla → üstteki ayar çubuğu. */
+.panel-tile.editable{cursor:pointer}
+.panel-tile.selected{outline:3px solid var(--acc);outline-offset:-3px;z-index:1}
+.panel-inspector{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  gap:12px 18px;
+  min-height:58px;
+  margin-bottom:12px;
+  padding:12px 14px;
+  background:var(--card);
+  border:1px solid var(--line-strong);
+  animation:pop-in var(--motion) var(--ease)
+}
+.panel-inspector>.muted{align-self:center;font-size:13px}
+.pi-field{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--txt-muted)}
+.pi-field input:not([type=color]),.pi-field select{width:120px;padding:7px 9px;font-size:13px;text-transform:none;letter-spacing:0}
+.pi-field.wide input{width:200px}
+.pi-field.narrow select{width:64px}
+.pi-swatches,.pi-icons{display:flex;flex-wrap:wrap;gap:4px}
+.pi-swatch{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid var(--line-strong);
+  background:var(--card);
+  color:var(--txt-muted);
+  cursor:pointer;
+  transition:transform var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease)
+}
+.pi-swatch:hover{transform:scale(1.12)}
+.pi-swatch[aria-checked=true],.pi-swatch.picked{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--acc)}
+.pi-swatch.custom{background:conic-gradient(#c8593f,#b77912,#16804a,#1f7a8c,#3d566e,#8e44ad,#c8593f)}
+.pi-swatch.custom input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.pi-icons button{
+  display:grid;
+  place-items:center;
+  width:30px;
+  height:30px;
+  padding:0;
+  border:1px solid var(--line);
+  background:var(--sunken);
+  color:var(--txt-soft);
+  cursor:pointer;
+  transition:background var(--motion-fast) var(--ease),color var(--motion-fast) var(--ease),transform var(--motion-fast) var(--ease)
+}
+.pi-icons button:hover{transform:scale(1.1);color:var(--txt)}
+.pi-icons button[aria-checked=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+.pi-actions{display:flex;align-items:center;gap:6px;margin-left:auto}
+@media (prefers-reduced-motion:reduce){
+  .panel-icon.on svg,.panel-icon.on,.panel-icon.on .belt,.panel-lamp{animation:none!important}
+  .panel-inspector{animation:none}
+  .panel-tile:hover,.panel-tile:hover .panel-lamp{transform:none}
+  .panel-tile,.panel-reading b,.panel-lamp,.panel-cols button{transition:none}
+}
+/* Panel sayfa sekmeleri (tabs.css .page-tabs) + sayfa ekle. */
+.panel-tabs-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.panel-tabs-row .page-tabs{margin:0}
+.panel-inspector .pi-hint{align-self:center}

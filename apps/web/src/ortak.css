@@ -1,0 +1,108 @@
+/* Ortak dil (2026-10-01, kullanıcı isteği: "farklı duranları ortaklaştır").
+   Bu dosya EN SON yüklenir. Aynı işi yapan bileşen ailelerinin GÖRÜNÜMÜ burada tek yerde
+   tanımlıdır; düzen (ızgara/flex, genişlik, min-width) bileşen dosyasında kalır.
+   Yeni bir segment/rozet/simge düğmesi icat etmeden önce buradaki aileye katın. */
+
+/* --- Ölçek token'ları ------------------------------------------------------
+   Gölge: xs durağan kontrol (düğme, aktif menü) · sm aktif hap/sekme · md açılır panel,
+   menü, ipucu, toast, kart hover · lg pencere · left/right yan çekmece (sağdan açılan
+   gölgeyi sola, soldan açılan sağa düşürür). Odak halkası, durum çizgisi (inset) ve stüdyo
+   tuvali token dışıdır. */
+:root{
+  --r-sm:4px;--r:6px;--r-md:8px;--r-lg:12px;
+  --shadow-xs:0 1px 2px #0b121912;
+  --shadow-sm:0 1px 3px #0b12191a;
+  --shadow-md:0 6px 18px #0b121922;
+  --shadow-lg:0 18px 48px #0b121933;
+  --shadow-left:-18px 0 40px #0b121924;
+  --shadow-right:12px 0 32px #0b121933;
+  --backdrop:#0b141a59;
+  --on-acc:#ffffff;
+  --mono:Consolas,ui-monospace,'Cascadia Mono',monospace;
+  --font-head:Manrope,'DM Sans','Segoe UI',system-ui,sans-serif;
+  --font-body:'DM Sans','Segoe UI',system-ui,sans-serif
+}
+[data-theme=dark]{
+  --shadow-xs:0 1px 2px #00000033;
+  --shadow-sm:0 1px 3px #00000040;
+  --shadow-md:0 6px 18px #00000059;
+  --shadow-lg:0 18px 48px #00000080;
+  --shadow-left:-18px 0 40px #00000073;
+  --shadow-right:12px 0 32px #00000080;
+  --backdrop:#00000080;
+  --on-acc:#ffffff
+}
+
+/* --- Segmentli seçici: tek görünüm -----------------------------------------
+   Aile: .insp-seg (panel), .report-presets / .report-shift-pick (zaman aralığı),
+   .panel-cols (Panelim sütun), .mode-switch (Canlı/Tasarım/Önizleme),
+   .library-tabs / .inspector-tabs (stüdyo). Gri iz, beyaz aktif hap. */
+.insp-seg,.report-presets,.report-shift-pick,.panel-cols,.mode-switch,.library-tabs,.inspector-tabs{
+  padding:3px;
+  gap:2px;
+  background:var(--sunken);
+  border:1px solid var(--line);
+  border-radius:var(--r-md)
+}
+.insp-seg button,.report-presets button,.report-shift-pick button,.panel-cols button,.mode-switch button,.library-tabs button,.inspector-tabs button{
+  border:0;
+  border-radius:var(--r);
+  background:none;
+  color:var(--txt-muted);
+  font-size:13px;
+  font-weight:500;
+  transition:background var(--motion) var(--ease),color var(--motion) var(--ease),box-shadow var(--motion) var(--ease)
+}
+.insp-seg button:hover:not(:disabled),.report-presets button:hover,.report-shift-pick button:hover,.panel-cols button:hover,.mode-switch button:hover,
+.library-tabs button:not([aria-selected=true]):hover,.inspector-tabs button:not([aria-selected=true]):hover{
+  color:var(--txt);
+  background:color-mix(in srgb,var(--card) 55%,transparent)
+}
+.insp-seg button.active,.report-presets button.active,.report-shift-pick button.active,.panel-cols button[aria-checked=true],.mode-switch button.active,
+.library-tabs button[aria-selected=true],.inspector-tabs button[aria-selected=true]{
+  background:var(--card);
+  color:var(--acc-text);
+  font-weight:600;
+  box-shadow:0 0 0 1px var(--line),var(--shadow-sm)
+}
+/* Risk seçicide aktif hap rengi riski söyler (insp-seg'in kendi kuralı korunur). */
+.insp-seg button.active.risk-high{color:var(--warn-text)}
+.insp-seg button.active.risk-critical{color:var(--danger)}
+
+/* --- Rozet: .badge + ton (.green/.ok, .warn, .bad). .red eski ad, .bad ile aynı. */
+.badge.red,.badge.bad{
+  background:color-mix(in srgb,var(--danger) 12%,transparent);
+  color:var(--danger)
+}
+.badge.ok{background:var(--run-bg);color:var(--run)}
+
+/* --- Kırmızı düğmeler -------------------------------------------------------
+   İşi BAŞLATAN Sil: .btn.ghost-danger (kırmızı yazı, zeminsiz).
+   ONAYLAYAN son düğme: .btn.danger (dolu kırmızı, style.css).
+   .danger-ghost eski ad (Projeler); aynı görünüm, .confirm dolu kırmızıya döner. */
+.btn.ghost-danger,.btn.danger-ghost{background:none;border-color:transparent;color:var(--danger)}
+.btn.ghost-danger:hover:not(:disabled),.btn.danger-ghost:hover:not(:disabled){background:color-mix(in srgb,var(--danger) 10%,transparent);border-color:transparent;color:var(--danger)}
+.btn.danger-ghost.confirm{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
+
+/* --- Simge düğmeleri: aynı köşe ve aynı hover ------------------------------ */
+.tool,.icon-btn,.drawer-close,.report-name-edit,.row-actions button,.theme-toggle,.nav-toggle{border-radius:var(--r)}
+.tool:hover,.tool.active,.icon-btn:hover,.drawer-close:hover,.report-name-edit:hover,.row-actions button:hover{background:var(--acc-soft);color:var(--acc-text)}
+.row-actions button.del:hover{background:color-mix(in srgb,var(--danger) 10%,transparent);color:var(--danger)}
+
+/* --- Durum noktaları: tek boy, tek ton sözlüğü -----------------------------
+   Ton (DESIGN.md): bağlı/çalışıyor --run · bayat/eksik --warn-line · hata --danger ·
+   normal ölçüm/boşta --txt-faint (ISA-101: normal gri) · hiç okunmadı içi boş halka.
+   Çelik mavisi (--acc*) durum rengi değildir. Renk ve ton bileşen dosyasında kalır; boy burada.
+   Ayrı aileler: stüdyo sembol noktaları (--sym-*), Panelim lambası ve özet karesi. */
+.connection-dot,.live-val i,.exec-chip i,.exec-dot,.cfg-problems i,.cfg-running i,.e-health i,
+.device-state i,.cfg-risk::before,.plc-mode i,.filter-dot,.tb-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.plc-mode.big i{width:10px;height:10px}
+
+/* --- Sayfa başlığı: üst satır (kenar çubuğu grubu) + 24 px başlık ----------
+   .page-title (yönetim sayfaları, Enerji), .panel-head (Panelim), .report-head
+   (Vardiya raporu) aynı tipografide. Üst satır büyük harf değil. */
+.report-eyebrow{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--txt-muted)}
+.report-title h2,.report-name-input{font-family:var(--font-head);font-size:24px;font-weight:600;letter-spacing:-.4px;line-height:1.2}
+
+/* --- Pencere arka planı: tek ton (yan panelin arka planı bilerek hafif kalır) --- */
+.modal-backdrop{background:var(--backdrop)}

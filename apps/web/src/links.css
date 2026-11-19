@@ -1,0 +1,7 @@
+/* B25: uc uca yapisma kalici baglanti listesi icin gorsel yardimcilar. style.css'e dokunulmadan ayri tutulur. */
+.link-panel{margin:10px 0;padding:9px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card)}
+.link-panel .panel-title{font-size:12px;letter-spacing:.5px;margin-bottom:6px}
+.link-row{display:flex;align-items:center;gap:6px;padding:4px 0}
+.link-row:not(:last-child){border-bottom:1px solid var(--line)}
+.link-jump{flex:1;text-align:left;background:none;border:none;padding:2px 0;font-size:13px;color:var(--acc-text);cursor:pointer}
+.link-jump:hover{text-decoration:underline}

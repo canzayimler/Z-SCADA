@@ -1,0 +1,14 @@
+/* B41: ISA-101 yayin lint'i icin gorsel yardimcilar. style.css'e dokunulmadan ayri tutulur. */
+.lint-modal{width:min(560px,100%)}
+.lint-list{max-height:44vh;overflow-y:auto;overflow-x:hidden;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.lint-row{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:10px 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card)}
+.lint-row:not(:disabled):hover{background:var(--acc-soft);border-color:var(--acc-line)}
+.lint-row:disabled{cursor:default;opacity:.85}
+.lint-row.critical{border-left:4px solid var(--danger)}
+.lint-row.warning{border-left:4px solid var(--warn-line)}
+.lint-row.info{border-left:4px solid var(--acc-line)}
+.lint-severity{flex:none;font-size:11px;font-weight:700;letter-spacing:.5px;padding:4px 8px;border-radius:4px;background:var(--chip);color:var(--txt-muted)}
+.lint-severity.critical{background:#c8593f1f;color:var(--danger)}
+.lint-severity.warning{background:var(--warn-bg);color:var(--warn-text)}
+.lint-severity.info{background:var(--acc-soft);color:var(--acc-text)}
+.lint-message{font-size:13px;color:var(--txt-soft);line-height:1.4}

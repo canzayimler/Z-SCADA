@@ -1,0 +1,134 @@
+/* Enerji analizörleri. Seri renkleri çelik mavisi tonları (DESIGN.md: sarı/kırmızı yalnız durum).
+   Dilimler: puant en koyu (en pahalı), gündüz orta, gece açık. Fazlar: ton + çizgi deseni. */
+:root,[data-theme=light]{--e-day:var(--acc-mid);--e-peak:var(--acc-deep);--e-night:var(--acc-line);--e-l1:var(--acc-deep);--e-l2:var(--acc-mid);--e-l3:var(--txt-faint);--e-grid:var(--line)}
+[data-theme=dark]{--e-day:var(--acc-mid);--e-peak:#a9bccf;--e-night:#46586a;--e-l1:#a9bccf;--e-l2:var(--acc-mid);--e-l3:#6b7179;--e-grid:#272b30}
+
+.energy .report-kpis strong em{font-style:normal;font-size:14px;font-weight:500;color:var(--txt-muted)}
+.energy .b-day{background:var(--e-day)}
+.energy .b-peak{background:var(--e-peak)}
+.energy .b-night{background:var(--e-night)}
+.energy .muted{font-size:12px;color:var(--txt-muted)}
+.energy .icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:5px;border:0;border-radius:6px;background:none;color:var(--txt-muted);cursor:pointer}
+.energy .icon-btn:hover{background:var(--acc-soft);color:var(--acc-text)}
+.e-over{color:var(--warn-text);font-weight:600}
+.e-over small{display:block;font-weight:500}
+.e-stale{color:var(--txt-faint);background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--warn-line) 14%,transparent) 4px 6px)}
+
+/* Durum rozeti: normal gri (ISA-101), anormal sarı + metin. */
+.e-health{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--txt-muted);white-space:nowrap}
+.e-health i{width:7px;height:7px;border-radius:50%;background:var(--txt-faint)}
+.e-health.partial,.e-health.down{color:var(--warn-text)}
+.e-health.partial i,.e-health.down i{background:var(--warn-line)}
+.e-health.down i{background:none;box-shadow:inset 0 0 0 1.5px var(--warn-line)}
+
+/* Analizör kartları */
+.e-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.e-card{cursor:pointer;transition:border-color var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease);display:flex;flex-direction:column;gap:12px}
+.e-card>header{margin-bottom:0}
+.e-card:hover{border-color:var(--line-strong)}
+.e-card.selected{border-color:var(--acc-line);box-shadow:inset 3px 0 0 var(--acc)}
+.e-card:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.e-card-title{display:flex;flex-direction:column;min-width:0}
+.e-card-title h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.e-card-title small{font-size:12px;color:var(--txt-muted)}
+.e-main{display:flex;align-items:center;justify-content:space-between;gap:10px 18px;flex-wrap:wrap}
+.e-big{display:flex;align-items:baseline;gap:6px}
+.e-big span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.e-big strong{font-size:34px;font-weight:700;letter-spacing:-.5px;color:var(--txt);line-height:1}
+.e-big em{font-style:normal;font-size:14px;color:var(--txt-muted)}
+.e-mini{display:grid;grid-template-columns:auto auto auto auto;gap:3px 8px;margin:0;font-size:13px}
+.e-mini dt{color:var(--txt-muted)}
+.e-mini dd{margin:0 0 0 0;text-align:right;color:var(--txt);min-width:84px}
+.e-mini small{color:var(--txt-muted);font-size:11px}
+.e-phase{width:100%;border-collapse:collapse;font-size:13px}
+.e-phase th,.e-phase td{padding:4px 6px;border:0;border-top:1px solid var(--line);text-align:right;background:none;height:auto;font-weight:500}
+.e-phase thead th{border-top:0;font-size:11px;color:var(--txt-muted);text-transform:none;letter-spacing:0}
+.e-phase tbody th{text-align:left;color:var(--txt-muted);font-size:12px;width:36px}
+.e-foot{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--txt-muted);border-top:1px solid var(--line);padding-top:10px}
+.e-foot b{color:var(--txt);font-weight:600}
+
+/* Trend */
+.e-trend>header{align-items:center}
+.e-trend-tools{display:flex;gap:8px;flex-wrap:wrap}
+.e-trend .chart-legend{margin:-4px 0 8px}
+.lg-line{height:0!important;width:18px!important;border-top:2px solid;border-radius:0!important}
+.lg-line.l1{border-color:var(--e-l1)}
+.lg-line.l2{border-color:var(--e-l2);border-top-style:dashed}
+.lg-line.l3{border-color:var(--e-l3);border-top-style:dotted}
+.e-line{position:relative;width:100%}
+.e-line svg{display:block}
+.e-grid{stroke:var(--e-grid);stroke-width:1}
+.e-axis{fill:var(--txt-muted);font-size:11px;font-variant-numeric:tabular-nums}
+.e-axis.unit{font-weight:600}
+.e-series{fill:none;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.e-series.l1{stroke:var(--e-l1)}
+.e-series.l2{stroke:var(--e-l2);stroke-dasharray:6 3}
+.e-series.l3{stroke:var(--e-l3);stroke-dasharray:2 3}
+.e-dot{stroke:var(--card);stroke-width:1.5}
+.e-dot.l1{fill:var(--e-l1)}.e-dot.l2{fill:var(--e-l2)}.e-dot.l3{fill:var(--e-l3)}
+.e-cursor{stroke:var(--line-strong);stroke-width:1}
+.e-chart-empty{display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;color:var(--txt-muted);font-size:13px}
+
+/* Yığılmış sütunlar */
+.e-cols{position:relative}
+.e-cols-plot{position:relative;display:flex;align-items:flex-end;gap:2px;height:220px;margin-left:44px;border-bottom:1px solid var(--line-strong)}
+.e-cols-grid{position:absolute;left:0;right:0;border-top:1px solid var(--e-grid);pointer-events:none}
+.e-cols-grid span{position:absolute;right:calc(100% + 6px);top:-8px;font-size:11px;font-style:normal;color:var(--txt-muted);font-variant-numeric:tabular-nums}
+.e-col{position:relative;flex:1 1 0;min-width:2px;height:100%;display:flex;align-items:flex-end;cursor:default}
+.e-col-stack{display:flex;flex-direction:column-reverse;width:100%;max-width:48px;margin:0 auto;border-radius:2px 2px 0 0;overflow:hidden}
+.e-col-stack span{display:block;min-height:1px}
+.e-col-stack span+span{box-shadow:0 1px 0 var(--card)}
+.e-col.hot .e-col-stack{filter:brightness(1.12)}
+.e-col.flagged::after{content:"";position:absolute;left:50%;bottom:-6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--warn-line)}
+.e-cols-axis{display:flex;gap:2px;margin:8px 0 0 44px}
+.e-cols-axis span{flex:1 1 0;min-width:2px;font-size:11px;color:var(--txt-muted);white-space:nowrap;overflow:visible;text-align:left;font-variant-numeric:tabular-nums}
+.chart-legend i.b-day,.chart-legend i.b-peak,.chart-legend i.b-night{width:10px;height:10px}
+
+/* Dilim listesi */
+.e-bands{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.e-bands li{display:grid;grid-template-columns:12px minmax(0,1fr) 80px 90px 70px;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+.e-bands li:first-child{border-top:0}
+.e-bands i{width:10px;height:10px;border-radius:2px}
+.e-bands small{display:block;font-size:11px;color:var(--txt-muted)}
+.e-bands b{text-align:right;font-weight:600}
+.e-bands .share-track span.b-day{background:var(--e-day)}.e-bands .share-track span.b-peak{background:var(--e-peak)}.e-bands .share-track span.b-night{background:var(--e-night)}
+
+/* Tablolar */
+.e-table td small{display:block;font-size:11px;color:var(--txt-muted)}
+.e-table td.e-over small{color:var(--warn-text)}
+.e-table tfoot td{font-weight:700;border-top:1px solid var(--line-strong);background:var(--sunken)}
+.e-row-actions{text-align:right;white-space:nowrap}
+.e-row-actions span{font-size:12px;color:var(--txt-muted);margin-right:8px}
+.e-row-actions .btn+.btn{margin-left:6px}
+.e-toolbar-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.e-pick-actions{display:flex;gap:14px;padding:0 2px 8px;border-bottom:1px solid var(--line)}
+.e-pick-list{max-height:280px;overflow-y:auto;padding-top:4px}
+.e-pick-list .check{margin-top:8px;font-size:13px}
+.e-pick-list .check small{margin-left:auto;color:var(--txt-muted)}
+a.btn{text-decoration:none}
+a.btn.disabled{pointer-events:none;opacity:.5}
+
+/* Ayarlar formu */
+.e-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0 14px}
+.e-form .field{margin-top:12px}
+.e-form .field>span{display:flex;align-items:center;gap:4px}
+.e-form-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.e-form-foot>span:first-child{margin-right:auto;font-size:12px}
+.e-editor>header{align-items:center}
+.e-editor .report-note{margin-top:12px}
+.e-roles{margin-top:18px}
+.e-roles h4{display:flex;align-items:center;gap:4px;margin:0 0 6px;font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--txt-muted)}
+.e-role{display:grid;grid-template-columns:minmax(160px,240px) minmax(0,1fr) 150px;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--line)}
+.e-role-name{font-size:13px;color:var(--txt)}
+.e-role-name small{margin-left:6px;color:var(--txt-muted);font-size:11px}
+.e-role-live{font-size:12px;color:var(--txt-soft);text-align:right}
+.e-role-live small{display:block;color:var(--warn-text)}
+
+@media (max-width:760px){
+ .e-cards{grid-template-columns:1fr}
+ .e-role{grid-template-columns:1fr;gap:4px}
+ .e-role-live{text-align:left}
+ .e-bands li{grid-template-columns:12px minmax(0,1fr) 70px 80px}
+ .e-bands .share-track{display:none}
+ .energy .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

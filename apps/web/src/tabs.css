@@ -1,0 +1,141 @@
+/* Sayfa içi sekmeler (Alarmlar). Gösterge seçili sekmenin altına kayar,
+   panel sekme yönüne göre içeri süzülür. Süre/eğri standart --motion değişkenlerinden. */
+.page-tabs{
+  position:relative;
+  display:inline-grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(112px,1fr);
+  padding:4px;
+  margin:0 0 14px;
+  max-width:100%;
+  overflow-x:auto;
+  background:var(--sunken);
+  border:1px solid var(--line);
+  border-radius:8px
+}
+.page-tabs-indicator{
+  position:absolute;
+  top:4px;
+  bottom:4px;
+  left:4px;
+  width:calc((100% - 8px) / var(--tab-n));
+  transform:translateX(calc(100% * var(--tab-i)));
+  background:var(--card);
+  border-radius:6px;
+  box-shadow:0 0 0 1px var(--line),var(--shadow-sm);
+  transition:transform var(--motion-slow) var(--ease),width var(--motion-slow) var(--ease)
+}
+.page-tabs button{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:8px 14px;
+  border:0;
+  background:none;
+  color:var(--txt-muted);
+  font:inherit;
+  font-size:13px;
+  white-space:nowrap;
+  cursor:pointer;
+  border-radius:6px;
+  transition:color var(--motion) var(--ease)
+}
+.page-tabs button:hover{color:var(--txt)}
+.page-tabs button[aria-selected=true]{
+  color:var(--acc-text);
+  font-weight:600
+}
+.tab-count{
+  min-width:20px;
+  padding:1px 6px;
+  border-radius:10px;
+  background:var(--line);
+  color:var(--txt-muted);
+  font-size:11px;
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+  transition:background var(--motion) var(--ease),color var(--motion) var(--ease)
+}
+.page-tabs button[aria-selected=true] .tab-count{
+  background:var(--acc-soft);
+  color:var(--acc-text)
+}
+.tab-count.alert,.page-tabs button[aria-selected=true] .tab-count.alert{
+  background:var(--sym-alarm);
+  color:#fff;
+  animation:pop-in var(--motion) var(--ease)
+}
+.tab-panel{animation:tab-in-next var(--motion-slow) var(--ease)}
+.tab-panel.prev{animation-name:tab-in-prev}
+@keyframes tab-in-next{from{opacity:0;transform:translateX(14px)}}
+@keyframes tab-in-prev{from{opacity:0;transform:translateX(-14px)}}
+.tab-panel .tab-lead{margin-bottom:12px}
+.tab-panel>.metrics-panel{margin-top:0}
+.alarm-policy{max-width:640px;border-bottom:0;padding-bottom:0}
+.alarm-policy .field-grid{margin:10px 0 6px}
+.alarm-policy .toolbar-group{margin-top:14px}
+/* Sütun başlığı filtreleri (FilterBar.tsx ColumnFilter) — vardiya raporu popover'ının üstüne. */
+.table-wrap.column-filter-table{overflow:visible}
+.column-filter-table thead{position:relative;z-index:20}
+.column-filter-table table,.column-filter-table th{overflow:visible}
+.report-filter-popover.column{width:270px;animation:pop-in var(--motion) var(--ease)}
+.report-filter-popover.column.align-right{left:auto;right:-8px}
+.report-filter-popover.column .report-filter-search{margin-bottom:4px}
+.report-filter-options.compact{max-height:260px}
+.report-filter-options.compact>label{grid-template-columns:auto minmax(0,1fr) auto;min-height:34px;transition:background var(--motion-fast) var(--ease),opacity var(--motion-fast) var(--ease)}
+.report-filter-options.compact>label span{align-items:center;gap:7px}
+.report-filter-options.compact>label.empty{opacity:.5}
+.report-filter-options.compact>label small{font-variant-numeric:tabular-nums}
+.report-filter-popover-head button:disabled{opacity:.4;cursor:default}
+.filter-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--txt-muted)}
+.filter-dot.tone-critical{background:var(--sym-alarm)}
+.filter-dot.tone-warning{background:var(--warn-text)}
+.filter-summary{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:0 0 8px;
+  font-size:12px;
+  color:var(--txt-muted);
+  height:20px;
+  font-variant-numeric:tabular-nums
+}
+.filter-summary button{border:0;background:none;padding:0;color:var(--acc-text);font:inherit;cursor:pointer}
+.filter-summary button:hover{text-decoration:underline}
+/* Kaydırma çubuğu görünüp kaybolunca sayfa genişliği zıplamasın. */
+html{scrollbar-gutter:stable}
+@media (prefers-reduced-motion:reduce){
+  .page-tabs-indicator,.page-tabs button,.tab-count,.report-filter-options.compact>label{transition:none}
+  .tab-panel,.tab-count.alert,.report-filter-popover.column{animation:none}
+}
+
+/* B51: toplu secim — Etiketler / Komutlar / Alarm kurallari tablolarinda ortak stiller.
+   .selection-bar, ozet satiriyla (.filter-summary) ayni sinifi paylasir: yukseklik/hiza
+   ayni kalir, secim baslayinca/bitince tablo yukari-asagi zplamaz. */
+.selection-bar{
+  justify-content:flex-start;
+  gap:10px;
+  color:var(--txt)
+}
+.selection-bar>span{font-weight:600;white-space:nowrap}
+.selection-bar .toolbar-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.selection-bar .toolbar-group input[type=text],.selection-bar .toolbar-group input:not([type]){
+  height:24px;
+  padding:0 8px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:var(--card);
+  color:var(--txt);
+  font:inherit;
+  font-size:12px
+}
+.selection-bar>button{margin-left:auto}
+.select-cell{width:1%;white-space:nowrap;text-align:center}
+.select-cell input[type=checkbox]{cursor:pointer}
+@media(pointer:coarse){
+  .select-cell{padding:0}
+  .select-cell input[type=checkbox]{width:44px;height:44px;margin:0}
+}

@@ -1,0 +1,110 @@
+diff --git a/node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js b/node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js
+index 98cb593..61da6e0 100644
+--- a/node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js
++++ b/node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js
+@@ -38,6 +38,9 @@ module.exports = function (RED) {
+   const { createClientCertificateManager } = require("./utils");
+ 
+   const { stringify } = require('flatted');
++  // Z SCADA: never log passwords or credentials.
++  function safeIdentity(u) { return JSON.stringify({ type: u && u.type, userName: u && u.userName, password: u && u.password ? '***' : undefined }); }
++  function safeEndpoint(e) { return JSON.stringify(e ? { name: e.name, endpoint: e.endpoint, securityPolicy: e.securityPolicy, securityMode: e.securityMode, login: e.login } : e); }
+ 
+   function OpcUaClientNode(n) {
+     RED.nodes.createNode(this, n);
+@@ -147,7 +150,7 @@ module.exports = function (RED) {
+         userName: opcuaEndpoint.credentials.user.toString(),
+         password: opcuaEndpoint.credentials.password ? opcuaEndpoint.credentials.password.toString() : ""
+       };
+-      verbose_log(chalk.green("Using UserName & password: ") + chalk.cyan(JSON.stringify(userIdentity)));
++      verbose_log(chalk.green("Using UserName & password: ") + chalk.cyan(safeIdentity(userIdentity)));
+     }
+     else if (opcuaEndpoint.usercert === true) {
+       if (!fs.existsSync(userCertificate)) {
+@@ -169,7 +172,7 @@ module.exports = function (RED) {
+       userIdentity = { type: opcua.UserTokenType.Anonymous };
+     }
+ 
+-    verbose_log(chalk.green("UserIdentity: ") + chalk.cyan(JSON.stringify(userIdentity)));
++    verbose_log(chalk.green("UserIdentity: ") + chalk.cyan(safeIdentity(userIdentity)));
+     let items = [];
+     let subscription; // only one subscription needed to hold multiple monitored Items
+ 
+@@ -538,7 +541,7 @@ module.exports = function (RED) {
+ 
+     async function connect_opcua_client() {
+       if (opcuaEndpoint?.login === true) {
+-        verbose_log(chalk.green("Using UserName & password: ") + chalk.cyan(JSON.stringify(userIdentity)));
++        verbose_log(chalk.green("Using UserName & password: ") + chalk.cyan(safeIdentity(userIdentity)));
+         if (opcuaEndpoint.credentials && opcuaEndpoint['user'] && opcuaEndpoint['password']) {
+           userIdentity = {
+             type: opcua.UserTokenType.UserName,
+@@ -629,14 +632,14 @@ module.exports = function (RED) {
+           connectingInFlight = false;
+           verbose_warn("Case A: Endpoint does not contain, 1==None 2==Sign 3==Sign&Encrypt, using securityMode: " + stringify(connectionOption.securityMode));
+           verbose_warn("        using securityPolicy: " + stringify(connectionOption.securityPolicy));
+-          verbose_warn("Case B: UserName & password does not match to server (needed by Sign or SignAndEncrypt), check username: " + userIdentity.userName + " and password: " + userIdentity.password);
++          verbose_warn("Case B: UserName & password does not match to server (needed by Sign or SignAndEncrypt), check username: " + userIdentity.userName + " and password: ***");
+           verbose_warn("Case C: With Sign you cannot use SecurityPolicy None!!");
+           verbose_warn("Case D: Certificate chain not valid, check server certificate chain against:");
+           verbose_warn("        CRL folder: " + node.client?.clientCertificateManager?.crlFolder);
+           verbose_warn("        Issuer folder: " + node.client?.clientCertificateManager?.issuersCertFolder);
+           verbose_warn("        Issuer CRL folder: " + node.client?.clientCertificateManager?.issuersCrlFolder);
+           // verbose_error("Invalid endpoint parameters: ", err);
+-          node_error("Wrong endpoint parameters: " + JSON.stringify(opcuaEndpoint) + ", error: " + JSON.stringify(err));
++          node_error("Wrong endpoint parameters: " + safeEndpoint(opcuaEndpoint) + ", error: " + JSON.stringify(err));
+           // "invalid endpoint" is NOT in the watchdog's skip list, so the
+           // watchdog will keep retrying the (re)connection while the server
+           // is down.
+@@ -665,7 +668,7 @@ module.exports = function (RED) {
+       // verbose_log("Create session...");
+       try {
+         // verbose_warn(`Create session with userIdentity node.client ${node.client == null} userIdentity ${JSON.stringify(userIdentity)}`)
+-        verbose_log(chalk.green("3) Create session with userIdentity at: ") + chalk.cyan(JSON.stringify(userIdentity)));
++        verbose_log(chalk.green("3) Create session with userIdentity at: ") + chalk.cyan(safeIdentity(userIdentity)));
+         //  {"clientName": "Node-red OPC UA Client node " + node.name},
+         // sessionName = "Node-red OPC UA Client node " + node.name;
+         if (!node.client) {
+@@ -1224,11 +1227,11 @@ module.exports = function (RED) {
+             password: opcuaEndpoint?.password,
+             type: opcua.UserTokenType.UserName
+           };
+-          verbose_log("NEW UserIdentity: " + JSON.stringify(userIdentity));
++          verbose_log("NEW UserIdentity: " + safeIdentity(userIdentity));
+         }
+-        verbose_log("Using new endpoint:" + stringify(opcuaEndpoint));
++        verbose_log("Using new endpoint:" + safeEndpoint(opcuaEndpoint));
+       } else {
+-        verbose_log("Using endpoint:" + stringify(opcuaEndpoint));
++        verbose_log("Using endpoint:" + safeEndpoint(opcuaEndpoint));
+       }
+       console.log("#2 Create client");
+       if (!node.client) {
+@@ -2745,11 +2748,11 @@ module.exports = function (RED) {
+             password: opcuaEndpoint?.password,
+             type: opcua.UserTokenType.UserName
+           };
+-          verbose_log("NEW UserIdentity: " + JSON.stringify(userIdentity));
++          verbose_log("NEW UserIdentity: " + safeIdentity(userIdentity));
+         }
+-        verbose_log("Using new endpoint:" + stringify(opcuaEndpoint));
++        verbose_log("Using new endpoint:" + safeEndpoint(opcuaEndpoint));
+       } else {
+-        verbose_log("Using endpoint:" + stringify(opcuaEndpoint));
++        verbose_log("Using endpoint:" + safeEndpoint(opcuaEndpoint));
+       }
+       // First close subscriptions etc.
+       if (subscription && subscription.isActive) {
+diff --git a/node_modules/node-red-contrib-opcua/opcua/107-opcuamethod.js b/node_modules/node-red-contrib-opcua/opcua/107-opcuamethod.js
+index 7b6a6b8..78f3861 100644
+--- a/node_modules/node-red-contrib-opcua/opcua/107-opcuamethod.js
++++ b/node_modules/node-red-contrib-opcua/opcua/107-opcuamethod.js
+@@ -307,7 +307,7 @@ module.exports = function (RED) {
+       } catch (err) {
+         var msg = {};
+         msg.error = {};
+-        msg.error.message = "Cannot connect to " + JSON.stringify(opcuaEndpoint);
++        msg.error.message = "Cannot connect to " + JSON.stringify(opcuaEndpoint ? { name: opcuaEndpoint.name, endpoint: opcuaEndpoint.endpoint, securityPolicy: opcuaEndpoint.securityPolicy, securityMode: opcuaEndpoint.securityMode, login: opcuaEndpoint.login } : opcuaEndpoint);
+         msg.error.source = this;
+         node.error("Cannot connect to ", msg);
+         callback(err);

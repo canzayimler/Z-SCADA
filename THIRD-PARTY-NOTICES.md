@@ -1,0 +1,946 @@
+# Third-party notices
+
+Z SCADA's own source code is licensed under the GNU General Public License, version 3 or (at your option) any later
+version (GPL-3.0-or-later; see `LICENSE` and `NOTICE`). This repository
+does **not** vendor any third-party package: all runtime dependencies are installed from the npm registry
+by `npm ci` and keep their own licenses. This file lists every production dependency resolved by
+`npm ls --omit=dev --all` for the committed `package-lock.json` (880 packages).
+
+## License compatibility
+
+Z SCADA is licensed under GPL-3.0-or-later. The dependencies listed below use licenses that are
+compatible with GPL-3.0: permissive licenses (MIT, BSD, ISC, Apache-2.0, ...) and GPL-3.0-or-later
+packages (`node-red-contrib-s7`, `@st-one-io/nodes7` and `node-red-contrib-cip-ethernet-ip` are
+GPL-3.0-or-later and are used as Node-RED nodes / libraries). Apache-2.0 components are compatible
+with GPL-3.0 (but not with GPL-2.0-only).
+
+**Binary distributions:** a bundle that includes the installed `node_modules` tree (for example a
+Windows installer) must keep each dependency's own license notices and offer the corresponding
+source as the GPL requires. The unmodified source of each package is available from the npm registry
+(`npm pack <name>@<version>`); the source of Z SCADA itself is this repository.
+
+## Modified third-party code
+
+`patches/node-red-contrib-opcua+0.2.355.patch` is applied by `patch-package` on install. It modifies
+`node-red-contrib-opcua` 0.2.355 (Apache-2.0, © its authors) so that credentials are never written to
+logs. The original package is Apache-2.0 and its copyright and license notices are retained in the
+installed package; the patch itself is part of Z SCADA and is distributed under GPL-3.0-or-later
+(permitted because Apache-2.0 is compatible with GPL-3.0).
+
+`packages/node-red-zscada-bacnet` is part of Z SCADA (GPL-3.0-or-later) and builds on
+`@innovation-system/node-bacnet` (MIT).
+
+## License summary
+
+| License | Packages |
+|---|---:|
+| MIT | 671 |
+| ISC | 116 |
+| Apache-2.0 | 28 |
+| BSD-2-Clause | 16 |
+| BSD-3-Clause | 16 |
+| BlueOak-1.0.0 | 13 |
+| GPL-3.0-or-later | 4 |
+| 0BSD | 2 |
+| MIT (from LICENSE file) | 2 |
+| OFL-1.1 | 2 |
+| UNSPECIFIED (no license information in the package) | 2 |
+| Apache 2.0 | 1 |
+| Artistic-2.0 | 1 |
+| CC-BY-3.0 | 1 |
+| CC0-1.0 | 1 |
+| Public Domain | 1 |
+| Python-2.0 | 1 |
+| Unlicense | 1 |
+| UNSPECIFIED (see LICENSE in the package) | 1 |
+
+## All production dependencies
+
+`*` = direct dependency of Z SCADA.
+
+| Package | Version | License |
+|---|---|---|
+| `@azure-rest/core-client` | 2.9.0 | MIT |
+| `@azure/abort-controller` | 2.2.0 | MIT |
+| `@azure/core-auth` | 1.11.0 | MIT |
+| `@azure/core-client` | 1.11.2 | MIT |
+| `@azure/core-lro` | 2.7.2 | MIT |
+| `@azure/core-paging` | 1.7.0 | MIT |
+| `@azure/core-process` | 1.0.0 | MIT |
+| `@azure/core-rest-pipeline` | 1.25.1 | MIT |
+| `@azure/core-tracing` | 1.4.0 | MIT |
+| `@azure/core-util` | 1.14.0 | MIT |
+| `@azure/identity` | 4.14.1 | MIT |
+| `@azure/keyvault-common` | 2.1.1 | MIT |
+| `@azure/keyvault-keys` | 4.10.2 | MIT |
+| `@azure/logger` | 1.4.0 | MIT |
+| `@azure/msal-browser` | 5.29.1 | MIT |
+| `@azure/msal-common` | 16.16.2 | MIT |
+| `@azure/msal-node` | 7.2.2 | MIT |
+| `@babel/runtime` | 7.29.7 | MIT |
+| `@esbuild/win32-x64` | 0.28.2 | MIT |
+| `@fastify/accept-negotiator` | 2.1.0 | MIT |
+| `@fastify/ajv-compiler` | 4.0.6 | MIT |
+| `@fastify/cookie` * | 11.1.2 | MIT |
+| `@fastify/error` | 4.2.0 | MIT |
+| `@fastify/fast-json-stringify-compiler` | 5.1.0 | MIT |
+| `@fastify/forwarded` | 3.0.2 | MIT |
+| `@fastify/merge-json-schemas` | 0.2.1 | MIT |
+| `@fastify/proxy-addr` | 5.1.0 | MIT |
+| `@fastify/send` | 4.1.1 | MIT |
+| `@fastify/static` * | 10.1.3 | MIT |
+| `@fontsource/dm-sans` * | 5.3.0 | OFL-1.1 |
+| `@fontsource/manrope` * | 5.3.0 | OFL-1.1 |
+| `@innovation-system/node-bacnet` * | 2.1.3 | MIT |
+| `@isaacs/cliui` | 8.0.2 | ISC |
+| `@isaacs/fs-minipass` | 4.0.1 | ISC |
+| `@isaacs/string-locale-compare` | 1.1.0 | ISC |
+| `@js-joda/core` | 5.7.0 | BSD-3-Clause |
+| `@leichtgewicht/ip-codec` | 2.0.5 | MIT |
+| `@lukeed/ms` | 2.0.2 | MIT |
+| `@node-red/editor-api` | 4.1.14 | Apache-2.0 |
+| `@node-red/editor-client` | 4.1.14 | Apache-2.0 |
+| `@node-red/nodes` | 4.1.14 | Apache-2.0 |
+| `@node-red/registry` | 4.1.14 | Apache-2.0 |
+| `@node-red/runtime` | 4.1.14 | Apache-2.0 |
+| `@node-red/util` | 4.1.14 | Apache-2.0 |
+| `@node-rs/bcrypt` | 1.10.7 | MIT |
+| `@node-rs/bcrypt-win32-x64-msvc` | 1.10.7 | MIT |
+| `@npmcli/agent` | 3.0.0 | ISC |
+| `@npmcli/arborist` | 8.0.5 | ISC |
+| `@npmcli/config` | 9.0.0 | ISC |
+| `@npmcli/fs` | 4.0.0 | ISC |
+| `@npmcli/git` | 6.0.3 | ISC |
+| `@npmcli/installed-package-contents` | 3.0.0 | ISC |
+| `@npmcli/map-workspaces` | 4.0.2 | ISC |
+| `@npmcli/metavuln-calculator` | 8.0.1 | ISC |
+| `@npmcli/name-from-folder` | 3.0.0 | ISC |
+| `@npmcli/node-gyp` | 4.0.0 | ISC |
+| `@npmcli/package-json` | 6.2.0 | ISC |
+| `@npmcli/promise-spawn` | 8.0.3 | ISC |
+| `@npmcli/query` | 4.0.1 | ISC |
+| `@npmcli/redact` | 3.2.2 | ISC |
+| `@npmcli/run-script` | 9.1.0 | ISC |
+| `@openp4nr/modbus-serial` | 8.4.0 | ISC |
+| `@peculiar/asn1-asym-key` | 2.10.0 | MIT |
+| `@peculiar/asn1-cms` | 2.10.0 | MIT |
+| `@peculiar/asn1-csr` | 2.10.0 | MIT |
+| `@peculiar/asn1-ecc` | 2.10.0 | MIT |
+| `@peculiar/asn1-pfx` | 2.10.0 | MIT |
+| `@peculiar/asn1-pkcs8` | 2.10.0 | MIT |
+| `@peculiar/asn1-pkcs9` | 2.10.0 | MIT |
+| `@peculiar/asn1-rsa` | 2.10.0 | MIT |
+| `@peculiar/asn1-schema` | 2.10.0 | MIT |
+| `@peculiar/asn1-x509` | 2.10.0 | MIT |
+| `@peculiar/asn1-x509-attr` | 2.10.0 | MIT |
+| `@peculiar/asn1-x509-post-quantum` | 2.10.0 | MIT |
+| `@peculiar/json-schema` | 1.1.12 | MIT |
+| `@peculiar/utils` | 2.0.3 | MIT |
+| `@peculiar/webcrypto` | 1.7.1 | MIT |
+| `@peculiar/x509` | 1.14.3 | MIT |
+| `@peculiar/x509` | 2.1.0 | MIT |
+| `@pinojs/redact` | 0.4.0 | MIT |
+| `@pkgjs/parseargs` | 0.11.0 | MIT |
+| `@serialport/binding-mock` | 10.2.2 | MIT |
+| `@serialport/bindings-cpp` | 10.8.0 | MIT |
+| `@serialport/bindings-cpp` | 13.0.0 | MIT |
+| `@serialport/bindings-interface` | 1.2.2 | MIT |
+| `@serialport/list` | 13.0.0 | MIT |
+| `@serialport/parser-byte-length` | 10.5.0 | MIT |
+| `@serialport/parser-byte-length` | 13.0.0 | MIT |
+| `@serialport/parser-cctalk` | 10.5.0 | MIT |
+| `@serialport/parser-cctalk` | 13.0.0 | MIT |
+| `@serialport/parser-delimiter` | 10.5.0 | MIT |
+| `@serialport/parser-delimiter` | 12.0.0 | MIT |
+| `@serialport/parser-delimiter` | 13.0.0 | MIT |
+| `@serialport/parser-inter-byte-timeout` | 10.5.0 | MIT |
+| `@serialport/parser-inter-byte-timeout` | 13.0.0 | MIT |
+| `@serialport/parser-packet-length` | 10.5.0 | MIT |
+| `@serialport/parser-packet-length` | 13.0.0 | MIT |
+| `@serialport/parser-readline` | 10.5.0 | MIT |
+| `@serialport/parser-readline` | 12.0.0 | MIT |
+| `@serialport/parser-readline` | 13.0.0 | MIT |
+| `@serialport/parser-ready` | 10.5.0 | MIT |
+| `@serialport/parser-ready` | 13.0.0 | MIT |
+| `@serialport/parser-regex` | 10.5.0 | MIT |
+| `@serialport/parser-regex` | 13.0.0 | MIT |
+| `@serialport/parser-slip-encoder` | 10.5.0 | MIT |
+| `@serialport/parser-slip-encoder` | 13.0.0 | MIT |
+| `@serialport/parser-spacepacket` | 10.5.0 | MIT |
+| `@serialport/parser-spacepacket` | 13.0.0 | MIT |
+| `@serialport/stream` | 10.5.0 | MIT |
+| `@serialport/stream` | 13.0.0 | MIT |
+| `@sigstore/bundle` | 3.1.0 | Apache-2.0 |
+| `@sigstore/core` | 2.0.0 | Apache-2.0 |
+| `@sigstore/protobuf-specs` | 0.4.3 | Apache-2.0 |
+| `@sigstore/sign` | 3.1.0 | Apache-2.0 |
+| `@sigstore/tuf` | 3.1.1 | Apache-2.0 |
+| `@sigstore/verify` | 2.1.1 | Apache-2.0 |
+| `@sindresorhus/is` | 5.6.0 | MIT |
+| `@st-one-io/nodes7` * | 1.1.2 | GPL-3.0-or-later |
+| `@ster5/global-mutex` | 2.0.0 | MIT |
+| `@ster5/global-mutex` | 3.3.0 | MIT |
+| `@szmarczak/http-timer` | 5.0.1 | MIT |
+| `@tediousjs/connection-string` | 0.5.0 | MIT |
+| `@tufjs/canonical-json` | 2.0.0 | MIT |
+| `@tufjs/models` | 3.0.1 | MIT |
+| `@types/asn1` | 0.2.4 | MIT |
+| `@types/async` | 3.2.25 | MIT |
+| `@types/dns-packet` | 5.6.5 | MIT |
+| `@types/http-cache-semantics` | 4.2.0 | MIT |
+| `@types/jsrsasign` | 10.5.15 | MIT |
+| `@types/lodash` | 4.17.22 | MIT |
+| `@types/lodash` | 4.17.25 | MIT |
+| `@types/lodash.memoize` | 4.1.9 | MIT |
+| `@types/multicast-dns` | 7.2.4 | MIT |
+| `@types/node` | 26.5.0 | MIT |
+| `@types/proper-lockfile` | 4.1.4 | MIT |
+| `@types/readable-stream` | 4.0.24 | MIT |
+| `@types/retry` | 0.12.5 | MIT |
+| `@types/semver` | 7.7.1 | MIT |
+| `@types/sshpk` | 1.17.5 | MIT |
+| `@types/ws` | 8.18.1 | MIT |
+| `@typescript/typescript-win32-x64` | 7.0.2 | Apache-2.0 |
+| `@typespec/ts-http-runtime` | 0.3.11 | MIT |
+| `@xstate/fsm` | 2.1.0 | MIT |
+| `@yarnpkg/lockfile` | 1.1.0 | BSD-2-Clause |
+| `abbrev` | 1.1.1 | ISC |
+| `abbrev` | 3.0.1 | ISC |
+| `abort-controller` | 3.0.0 | MIT |
+| `abstract-logging` | 2.0.1 | MIT |
+| `accepts` | 1.3.8 | MIT |
+| `acorn` | 8.18.0 | MIT |
+| `acorn-walk` | 8.3.5 | MIT |
+| `ads-client` | 2.2.0 | MIT |
+| `agent-base` | 6.0.2 | MIT |
+| `agent-base` | 7.1.4 | MIT |
+| `ajv` | 8.20.0 | MIT |
+| `ajv-formats` | 3.0.1 | MIT |
+| `ansi-colors` | 4.1.3 | MIT |
+| `ansi-regex` | 5.0.1 | MIT |
+| `ansi-regex` | 6.2.2 | MIT |
+| `ansi-styles` | 4.3.0 | MIT |
+| `ansi-styles` | 6.2.3 | MIT |
+| `any-promise` | 1.3.0 | MIT |
+| `append-field` | 1.0.0 | MIT |
+| `aproba` | 2.1.0 | ISC |
+| `archy` | 1.0.0 | MIT |
+| `argparse` | 2.0.1 | Python-2.0 |
+| `array-back` | 6.2.3 | MIT |
+| `array-flatten` | 1.1.1 | MIT |
+| `array-flatten` | 2.1.2 | MIT |
+| `asn1` | 0.2.6 | MIT |
+| `asn1-ber` | 1.2.2 | MIT |
+| `asn1js` | 3.0.10 | BSD-3-Clause |
+| `assert` | 2.1.0 | MIT |
+| `assert-plus` | 1.0.0 | MIT |
+| `async` | 3.2.6 | MIT |
+| `async-mutex` | 0.5.0 | MIT |
+| `asynckit` | 0.4.0 | MIT |
+| `atomic-sleep` | 1.0.0 | MIT |
+| `available-typed-arrays` | 1.0.7 | MIT |
+| `avvio` | 9.3.0 | MIT |
+| `axios` | 1.19.0 | MIT |
+| `backoff` | 2.5.0 | MIT |
+| `balanced-match` | 1.0.2 | MIT |
+| `balanced-match` | 4.0.4 | MIT |
+| `base64-js` | 1.5.1 | MIT |
+| `basic-auth` | 2.0.1 | MIT |
+| `bcrypt-pbkdf` | 1.0.2 | BSD-3-Clause |
+| `bcryptjs` | 3.0.3 | BSD-3-Clause |
+| `bin-links` | 5.0.0 | ISC |
+| `binary-extensions` | 2.3.0 | MIT |
+| `bl` | 6.1.6 | MIT |
+| `body-parser` | 1.20.6 | MIT |
+| `boolbase` | 1.0.0 | ISC |
+| `brace-expansion` | 2.0.2 | MIT |
+| `brace-expansion` | 2.1.7 | MIT |
+| `brace-expansion` | 5.0.9 | MIT |
+| `braces` | 3.0.3 | MIT |
+| `broker-factory` | 3.1.15 | MIT |
+| `bson` | 7.3.2 | Apache-2.0 |
+| `buffer` | 6.0.3 | MIT |
+| `buffer-equal-constant-time` | 1.0.1 | BSD-3-Clause |
+| `buffer-from` | 1.1.2 | MIT |
+| `bundle-name` | 4.1.1 | MIT |
+| `busboy` | 1.6.0 | MIT |
+| `byline` | 5.0.0 | MIT |
+| `bytes` | 3.1.2 | MIT |
+| `cacache` | 19.0.1 | ISC |
+| `cacheable-lookup` | 7.0.0 | MIT |
+| `cacheable-request` | 10.2.14 | MIT |
+| `call-bind` | 1.0.9 | MIT |
+| `call-bind-apply-helpers` | 1.0.2 | MIT |
+| `call-bound` | 1.0.4 | MIT |
+| `chalk` | 4.1.2 | MIT |
+| `chalk` | 5.6.2 | MIT |
+| `chalk` | 6.0.1 | MIT |
+| `chalk-template` | 0.4.0 | MIT |
+| `cheerio` | 1.0.0-rc.10 | MIT |
+| `cheerio-select` | 1.6.0 | BSD-2-Clause |
+| `chokidar` | 4.0.3 | MIT |
+| `chownr` | 3.0.0 | BlueOak-1.0.0 |
+| `ci-info` | 3.9.0 | MIT |
+| `ci-info` | 4.4.0 | MIT |
+| `cidr-regex` | 4.1.3 | BSD-2-Clause |
+| `cli-columns` | 4.0.0 | MIT |
+| `cli-table` | 0.3.11 | MIT (from LICENSE file) |
+| `cliui` | 8.0.1 | ISC |
+| `clone` | 2.1.2 | MIT |
+| `cmd-shim` | 7.0.0 | ISC |
+| `color-convert` | 2.0.1 | MIT |
+| `color-name` | 1.1.4 | MIT |
+| `colors` | 1.0.3 | MIT |
+| `combined-stream` | 1.0.8 | MIT |
+| `command-line-args` | 6.0.2 | MIT |
+| `command-line-usage` | 7.0.4 | MIT |
+| `commander` | 11.1.0 | MIT |
+| `commander` | 12.1.0 | MIT |
+| `commist` | 3.2.0 | MIT |
+| `common-ancestor-path` | 1.0.1 | ISC |
+| `concat-stream` | 2.0.0 | MIT |
+| `content-disposition` | 0.5.4 | MIT |
+| `content-disposition` | 2.0.1 | MIT |
+| `content-type` | 1.0.5 | MIT |
+| `cookie` | 0.7.2 | MIT |
+| `cookie` | 1.1.1 | MIT |
+| `cookie` | 2.0.1 | MIT |
+| `cookie-parser` | 1.4.7 | MIT |
+| `cookie-signature` | 1.0.6 | MIT |
+| `cookie-signature` | 1.0.7 | MIT |
+| `cors` | 2.8.6 | MIT |
+| `crc` | 3.4.0 | MIT |
+| `cronosjs` | 1.7.1 | ISC |
+| `cross-spawn` | 7.0.6 | MIT |
+| `css-select` | 4.3.0 | BSD-2-Clause |
+| `css-what` | 6.2.2 | BSD-2-Clause |
+| `cssesc` | 3.0.0 | MIT |
+| `dashdash` | 1.14.1 | MIT |
+| `dateformat` | 3.0.3 | MIT |
+| `debug` | 2.6.9 | MIT |
+| `debug` | 3.2.7 | MIT |
+| `debug` | 4.4.0 | MIT |
+| `debug` | 4.4.3 | MIT |
+| `decompress-response` | 6.0.0 | MIT |
+| `default-browser` | 5.5.1 | MIT |
+| `default-browser-id` | 5.0.1 | MIT |
+| `defer-to-connect` | 2.0.1 | MIT |
+| `define-data-property` | 1.1.4 | MIT |
+| `define-lazy-prop` | 3.0.0 | MIT |
+| `define-properties` | 1.2.1 | MIT |
+| `delayed-stream` | 1.0.0 | MIT |
+| `denque` | 2.1.0 | Apache-2.0 |
+| `depd` | 2.0.0 | MIT |
+| `dequal` | 2.0.3 | MIT |
+| `dequeue` | 1.0.5 | UNSPECIFIED (see LICENSE in the package) |
+| `destroy` | 1.2.0 | MIT |
+| `diff` | 5.2.2 | BSD-3-Clause |
+| `dns-equal` | 1.0.0 | MIT |
+| `dns-packet` | 5.6.1 | MIT |
+| `dom-serializer` | 1.4.1 | MIT |
+| `domelementtype` | 2.3.0 | BSD-2-Clause |
+| `domhandler` | 4.3.1 | BSD-2-Clause |
+| `domutils` | 2.8.0 | BSD-2-Clause |
+| `dunder-proto` | 1.0.1 | MIT |
+| `eastasianwidth` | 0.2.0 | MIT |
+| `ecc-jsbn` | 0.1.2 | MIT |
+| `ecdsa-sig-formatter` | 1.0.11 | Apache-2.0 |
+| `ee-first` | 1.1.1 | MIT |
+| `emoji-regex` | 8.0.0 | MIT |
+| `emoji-regex` | 9.2.2 | MIT |
+| `encodeurl` | 2.0.0 | MIT |
+| `encoding` | 0.1.13 | MIT |
+| `enquirer` | 2.4.1 | MIT |
+| `entities` | 2.2.0 | BSD-2-Clause |
+| `env-paths` | 2.2.1 | MIT |
+| `env-paths` | 4.0.0 | MIT |
+| `err-code` | 2.0.3 | MIT |
+| `es-define-property` | 1.0.1 | MIT |
+| `es-errors` | 1.3.0 | MIT |
+| `es-object-atoms` | 1.1.2 | MIT |
+| `es-set-tostringtag` | 2.1.0 | MIT |
+| `esbuild` | 0.28.2 | MIT |
+| `escalade` | 3.2.0 | MIT |
+| `escape-html` | 1.0.3 | MIT |
+| `etag` | 1.8.1 | MIT |
+| `ethernet-ip` | 1.2.5 | MIT |
+| `event-target-shim` | 5.0.1 | MIT |
+| `events` | 3.3.0 | MIT |
+| `exponential-backoff` | 3.1.3 | Apache-2.0 |
+| `express` | 4.22.2 | MIT |
+| `express-session` | 1.19.0 | MIT |
+| `fast-decode-uri-component` | 1.0.1 | MIT |
+| `fast-deep-equal` | 3.1.3 | MIT |
+| `fast-json-stringify` | 7.0.1 | MIT |
+| `fast-querystring` | 1.1.2 | MIT |
+| `fast-unique-numbers` | 9.0.27 | MIT |
+| `fast-uri` | 3.1.7 | BSD-3-Clause |
+| `fast-uri` | 4.1.4 | BSD-3-Clause |
+| `fastest-levenshtein` | 1.0.16 | MIT |
+| `fastify` * | 5.12.3 | MIT |
+| `fastify-plugin` | 6.0.0 | MIT |
+| `fastq` | 1.20.3 | ISC |
+| `fdir` | 6.5.0 | MIT |
+| `fill-range` | 7.1.1 | MIT |
+| `finalhandler` | 1.3.2 | MIT |
+| `find-my-way` | 9.9.0 | MIT |
+| `find-replace` | 5.0.2 | MIT |
+| `find-yarn-workspace-root` | 2.0.0 | Apache-2.0 |
+| `flatted` | 3.2.2 | ISC |
+| `follow-redirects` | 1.16.0 | MIT |
+| `for-each` | 0.3.5 | MIT |
+| `foreground-child` | 3.3.1 | ISC |
+| `form-data` | 4.0.6 | MIT |
+| `form-data-encoder` | 2.1.4 | MIT |
+| `forwarded` | 0.2.0 | MIT |
+| `fresh` | 0.5.2 | MIT |
+| `fs-extra` | 10.1.0 | MIT |
+| `fs-extra` | 11.4.0 | MIT |
+| `fs-minipass` | 3.0.3 | ISC |
+| `fs.realpath` | 1.0.0 | ISC |
+| `function-bind` | 1.1.2 | MIT |
+| `generator-function` | 2.0.1 | MIT |
+| `get-caller-file` | 2.0.5 | ISC |
+| `get-intrinsic` | 1.3.0 | MIT |
+| `get-proto` | 1.0.1 | MIT |
+| `get-stream` | 6.0.1 | MIT |
+| `get-user-locale` | 2.3.0 | MIT |
+| `getpass` | 0.1.7 | MIT |
+| `glob` | 10.5.0 | ISC |
+| `glob` | 13.0.6 | BlueOak-1.0.0 |
+| `glob` | 9.3.5 | ISC |
+| `gopd` | 1.2.0 | MIT |
+| `got` | 12.6.1 | MIT |
+| `graceful-fs` | 4.2.11 | ISC |
+| `has-flag` | 4.0.0 | MIT |
+| `has-property-descriptors` | 1.0.2 | MIT |
+| `has-symbols` | 1.1.0 | MIT |
+| `has-tostringtag` | 1.0.2 | MIT |
+| `hash-sum` | 2.0.0 | MIT |
+| `hasown` | 2.0.4 | MIT |
+| `help-me` | 5.0.0 | MIT |
+| `hexy` | 0.3.5 | MIT |
+| `hexy` | 0.4.0 | MIT |
+| `hosted-git-info` | 8.1.0 | ISC |
+| `hpagent` | 1.2.0 | MIT |
+| `htmlparser2` | 6.1.0 | MIT |
+| `http-cache-semantics` | 4.2.0 | BSD-2-Clause |
+| `http-errors` | 2.0.0 | MIT |
+| `http-errors` | 2.0.1 | MIT |
+| `http-proxy-agent` | 7.0.2 | MIT |
+| `http2-wrapper` | 2.2.1 | MIT |
+| `https-proxy-agent` | 5.0.1 | MIT |
+| `https-proxy-agent` | 7.0.6 | MIT |
+| `humanize` | 0.0.9 | MIT (from LICENSE file) |
+| `i18next` | 25.8.14 | MIT |
+| `iconv-lite` | 0.4.24 | MIT |
+| `iconv-lite` | 0.6.3 | MIT |
+| `iconv-lite` | 0.7.3 | MIT |
+| `ieee754` | 1.2.1 | BSD-3-Clause |
+| `ignore-walk` | 7.0.0 | ISC |
+| `imurmurhash` | 0.1.4 | MIT |
+| `inherits` | 2.0.4 | ISC |
+| `ini` | 5.0.0 | ISC |
+| `init-package-json` | 7.0.2 | ISC |
+| `invert-kv` | 3.0.1 | MIT |
+| `ip-address` | 10.1.0 | MIT |
+| `ip-address` | 10.7.0 | MIT |
+| `ip-regex` | 5.0.0 | MIT |
+| `ipaddr.js` | 1.9.1 | MIT |
+| `ipaddr.js` | 2.5.0 | MIT |
+| `is-arguments` | 1.2.0 | MIT |
+| `is-callable` | 1.2.7 | MIT |
+| `is-cidr` | 5.1.1 | BSD-2-Clause |
+| `is-docker` | 2.2.1 | MIT |
+| `is-docker` | 3.0.0 | MIT |
+| `is-fullwidth-code-point` | 3.0.0 | MIT |
+| `is-generator-function` | 1.1.2 | MIT |
+| `is-in-ssh` | 1.0.0 | MIT |
+| `is-inside-container` | 1.0.0 | MIT |
+| `is-nan` | 1.3.2 | MIT |
+| `is-number` | 7.0.0 | MIT |
+| `is-regex` | 1.2.1 | MIT |
+| `is-safe-filename` | 0.1.1 | MIT |
+| `is-typed-array` | 1.1.15 | MIT |
+| `is-utf8` | 0.2.1 | MIT |
+| `is-wsl` | 2.2.0 | MIT |
+| `is-wsl` | 3.1.1 | MIT |
+| `isarray` | 2.0.5 | MIT |
+| `isexe` | 2.0.0 | ISC |
+| `isexe` | 3.1.5 | BlueOak-1.0.0 |
+| `iso-on-tcp` | 0.1.0 | GPL-3.0-or-later |
+| `jackspeak` | 3.4.3 | BlueOak-1.0.0 |
+| `js-md4` | 0.3.2 | MIT |
+| `js-sdsl` | 4.3.0 | MIT |
+| `js-yaml` | 4.3.2 | MIT |
+| `jsbn` | 0.1.1 | MIT |
+| `jsmodbus` | 4.0.10 | MIT |
+| `json-buffer` | 3.0.1 | MIT |
+| `json-parse-even-better-errors` | 4.0.0 | MIT |
+| `json-schema-ref-resolver` | 3.0.0 | MIT |
+| `json-schema-traverse` | 1.0.0 | MIT |
+| `json-stable-stringify` | 1.3.0 | MIT |
+| `json-stringify-nice` | 1.1.4 | ISC |
+| `json-stringify-safe` | 5.0.1 | ISC |
+| `jsonata` | 2.2.2 | MIT |
+| `jsonfile` | 6.2.1 | MIT |
+| `jsonify` | 0.0.1 | Public Domain |
+| `jsonparse` | 1.3.1 | MIT |
+| `jsonwebtoken` | 9.0.3 | MIT |
+| `jsrsasign` | 11.1.5 | MIT |
+| `just-diff` | 6.0.2 | MIT |
+| `just-diff-apply` | 5.5.0 | MIT |
+| `jwa` | 2.0.1 | MIT |
+| `jws` | 4.0.1 | MIT |
+| `keyv` | 4.5.4 | MIT |
+| `klaw-sync` | 6.0.0 | MIT |
+| `lcid` | 3.1.1 | MIT |
+| `libnpmaccess` | 9.0.0 | ISC |
+| `libnpmdiff` | 7.0.5 | ISC |
+| `libnpmexec` | 9.0.5 | ISC |
+| `libnpmfund` | 6.0.5 | ISC |
+| `libnpmhook` | 11.0.0 | ISC |
+| `libnpmorg` | 7.0.0 | ISC |
+| `libnpmpack` | 8.0.5 | ISC |
+| `libnpmpublish` | 10.0.2 | ISC |
+| `libnpmsearch` | 8.0.0 | ISC |
+| `libnpmteam` | 7.0.0 | ISC |
+| `libnpmversion` | 7.0.0 | ISC |
+| `light-my-request` | 6.6.0 | BSD-3-Clause |
+| `line-by-line` | 0.1.6 | MIT |
+| `lodash` | 4.17.21 | MIT |
+| `lodash.camelcase` | 4.3.0 | MIT |
+| `lodash.clonedeep` | 4.5.0 | MIT |
+| `lodash.includes` | 4.3.0 | MIT |
+| `lodash.isboolean` | 3.0.3 | MIT |
+| `lodash.isinteger` | 4.0.4 | MIT |
+| `lodash.isnumber` | 3.0.3 | MIT |
+| `lodash.isplainobject` | 4.0.6 | MIT |
+| `lodash.isstring` | 4.0.1 | MIT |
+| `lodash.memoize` | 4.1.2 | MIT |
+| `lodash.once` | 4.1.1 | MIT |
+| `long` | 5.3.2 | Apache-2.0 |
+| `lowercase-keys` | 3.0.0 | MIT |
+| `lru-cache` | 10.4.3 | ISC |
+| `lru-cache` | 11.5.2 | BlueOak-1.0.0 |
+| `lru-cache` | 4.1.5 | ISC |
+| `lucide-react` * | 1.42.0 | ISC |
+| `make-fetch-happen` | 14.0.3 | ISC |
+| `math-intrinsics` | 1.1.0 | MIT |
+| `media-typer` | 0.3.0 | MIT |
+| `media-typer` | 1.1.0 | MIT |
+| `memorystore` | 1.6.8 | MIT |
+| `merge-descriptors` | 1.0.3 | MIT |
+| `methods` | 1.1.2 | MIT |
+| `micromatch` | 4.0.8 | MIT |
+| `mime` | 1.6.0 | MIT |
+| `mime` | 3.0.0 | MIT |
+| `mime-db` | 1.52.0 | MIT |
+| `mime-types` | 2.1.35 | MIT |
+| `mimic-response` | 3.1.0 | MIT |
+| `mimic-response` | 4.0.0 | MIT |
+| `minimatch` | 10.2.6 | BlueOak-1.0.0 |
+| `minimatch` | 8.0.7 | ISC |
+| `minimatch` | 9.0.9 | ISC |
+| `minimist` | 1.2.6 | MIT |
+| `minimist` | 1.2.8 | MIT |
+| `minipass` | 3.3.6 | ISC |
+| `minipass` | 4.2.8 | ISC |
+| `minipass` | 7.1.3 | BlueOak-1.0.0 |
+| `minipass-collect` | 2.0.1 | ISC |
+| `minipass-fetch` | 4.0.1 | MIT |
+| `minipass-flush` | 1.0.5 | ISC |
+| `minipass-pipeline` | 1.2.4 | ISC |
+| `minipass-sized` | 1.0.3 | ISC |
+| `minizlib` | 3.1.0 | MIT |
+| `mkdirp` | 1.0.4 | MIT |
+| `moment` | 2.30.1 | MIT |
+| `moment-timezone` | 0.5.48 | MIT |
+| `mqtt` | 5.15.2 | MIT |
+| `mqtt-packet` | 9.0.2 | MIT |
+| `ms` | 2.0.0 | MIT |
+| `ms` | 2.1.3 | MIT |
+| `mssql` | 11.0.2 | MIT |
+| `multer` | 2.2.0 | MIT |
+| `multicast-dns` | 7.2.5 | MIT |
+| `mustache` | 4.2.0 | MIT |
+| `mute-stream` | 1.0.0 | ISC |
+| `mute-stream` | 2.0.0 | ISC |
+| `native-duplexpair` | 1.0.0 | MIT |
+| `negotiator` | 0.6.3 | MIT |
+| `negotiator` | 1.0.0 | MIT |
+| `net-snmp` | 3.29.2 | MIT |
+| `node-addon-api` | 5.1.0 | MIT |
+| `node-addon-api` | 8.3.0 | MIT |
+| `node-gyp` | 11.5.0 | MIT |
+| `node-gyp-build` | 4.8.4 | MIT |
+| `node-opcua` | 2.160.0 | MIT |
+| `node-opcua-address-space` | 2.160.0 | MIT |
+| `node-opcua-address-space-base` | 2.159.0 | MIT |
+| `node-opcua-address-space-base` | 2.186.10 | MIT |
+| `node-opcua-address-space-for-conformance-testing` | 2.160.0 | MIT |
+| `node-opcua-aggregates` | 2.160.0 | MIT |
+| `node-opcua-alarm-condition` | 2.160.0 | MIT |
+| `node-opcua-alarm-condition` | 2.186.12 | MIT |
+| `node-opcua-assert` | 2.157.0 | MIT |
+| `node-opcua-assert` | 2.186.7 | MIT |
+| `node-opcua-basic-types` | 2.157.0 | MIT |
+| `node-opcua-basic-types` | 2.186.7 | MIT |
+| `node-opcua-binary-stream` | 2.157.0 | MIT |
+| `node-opcua-binary-stream` | 2.186.7 | MIT |
+| `node-opcua-buffer-utils` | 2.157.0 | MIT |
+| `node-opcua-buffer-utils` | 2.186.7 | MIT |
+| `node-opcua-certificate-manager` | 2.160.0 | MIT |
+| `node-opcua-certificate-manager` | 2.186.10 | MIT |
+| `node-opcua-chunkmanager` | 2.158.0 | MIT |
+| `node-opcua-chunkmanager` | 2.186.10 | MIT |
+| `node-opcua-client` | 2.160.0 | MIT |
+| `node-opcua-client` | 2.186.12 | MIT |
+| `node-opcua-client-crawler` | 2.127.1 | MIT |
+| `node-opcua-client-dynamic-extension-object` | 2.160.0 | MIT |
+| `node-opcua-client-dynamic-extension-object` | 2.186.12 | MIT |
+| `node-opcua-client-proxy` | 2.160.0 | MIT |
+| `node-opcua-common` | 2.159.0 | MIT |
+| `node-opcua-common` | 2.186.10 | MIT |
+| `node-opcua-constants` | 2.157.0 | MIT |
+| `node-opcua-constants` | 2.185.0 | MIT |
+| `node-opcua-crypto` | 4.16.0 | MIT |
+| `node-opcua-crypto` | 4.16.1 | MIT |
+| `node-opcua-crypto` | 6.1.2 | MIT |
+| `node-opcua-data-access` | 2.159.0 | MIT |
+| `node-opcua-data-model` | 2.158.0 | MIT |
+| `node-opcua-data-model` | 2.186.10 | MIT |
+| `node-opcua-data-value` | 2.159.0 | MIT |
+| `node-opcua-data-value` | 2.186.10 | MIT |
+| `node-opcua-date-time` | 2.157.0 | MIT |
+| `node-opcua-date-time` | 2.186.7 | MIT |
+| `node-opcua-debug` | 2.157.0 | MIT |
+| `node-opcua-debug` | 2.186.7 | MIT |
+| `node-opcua-enum` | 2.157.0 | MIT |
+| `node-opcua-enum` | 2.186.7 | MIT |
+| `node-opcua-extension-object` | 2.158.0 | MIT |
+| `node-opcua-extension-object` | 2.186.7 | MIT |
+| `node-opcua-factory` | 2.158.0 | MIT |
+| `node-opcua-factory` | 2.186.7 | MIT |
+| `node-opcua-file-transfer` | 2.160.0 | MIT |
+| `node-opcua-guid` | 2.157.0 | MIT |
+| `node-opcua-guid` | 2.184.0 | MIT |
+| `node-opcua-hostname` | 2.157.0 | MIT |
+| `node-opcua-hostname` | 2.184.0 | MIT |
+| `node-opcua-nodeid` | 2.157.0 | MIT |
+| `node-opcua-nodeid` | 2.186.7 | MIT |
+| `node-opcua-nodeset-ua` | 2.159.0 | MIT |
+| `node-opcua-nodesets` | 2.157.0 | MIT |
+| `node-opcua-numeric-range` | 2.158.0 | MIT |
+| `node-opcua-numeric-range` | 2.186.7 | MIT |
+| `node-opcua-object-registry` | 2.157.0 | MIT |
+| `node-opcua-object-registry` | 2.186.7 | MIT |
+| `node-opcua-packet-analyzer` | 2.158.0 | MIT |
+| `node-opcua-packet-analyzer` | 2.186.7 | MIT |
+| `node-opcua-packet-assembler` | 2.157.0 | MIT |
+| `node-opcua-packet-assembler` | 2.186.10 | MIT |
+| `node-opcua-pki` | 5.7.0 | MIT |
+| `node-opcua-pki` | 7.0.1 | MIT |
+| `node-opcua-pseudo-session` | 2.160.0 | MIT |
+| `node-opcua-pseudo-session` | 2.186.12 | MIT |
+| `node-opcua-schemas` | 2.159.0 | MIT |
+| `node-opcua-schemas` | 2.186.10 | MIT |
+| `node-opcua-secure-channel` | 2.160.0 | MIT |
+| `node-opcua-secure-channel` | 2.186.12 | MIT |
+| `node-opcua-server` | 2.160.0 | MIT |
+| `node-opcua-server-discovery` | 2.160.0 | MIT |
+| `node-opcua-service-browse` | 2.159.0 | MIT |
+| `node-opcua-service-browse` | 2.186.10 | MIT |
+| `node-opcua-service-call` | 2.159.0 | MIT |
+| `node-opcua-service-call` | 2.186.10 | MIT |
+| `node-opcua-service-discovery` | 2.159.0 | MIT |
+| `node-opcua-service-discovery` | 2.186.10 | MIT |
+| `node-opcua-service-endpoints` | 2.159.0 | MIT |
+| `node-opcua-service-endpoints` | 2.186.10 | MIT |
+| `node-opcua-service-filter` | 2.159.0 | MIT |
+| `node-opcua-service-filter` | 2.186.10 | MIT |
+| `node-opcua-service-history` | 2.159.0 | MIT |
+| `node-opcua-service-history` | 2.186.10 | MIT |
+| `node-opcua-service-node-management` | 2.159.0 | MIT |
+| `node-opcua-service-query` | 2.159.0 | MIT |
+| `node-opcua-service-query` | 2.186.10 | MIT |
+| `node-opcua-service-read` | 2.159.0 | MIT |
+| `node-opcua-service-read` | 2.186.10 | MIT |
+| `node-opcua-service-register-node` | 2.159.0 | MIT |
+| `node-opcua-service-register-node` | 2.186.10 | MIT |
+| `node-opcua-service-secure-channel` | 2.159.0 | MIT |
+| `node-opcua-service-secure-channel` | 2.186.10 | MIT |
+| `node-opcua-service-session` | 2.159.0 | MIT |
+| `node-opcua-service-session` | 2.186.10 | MIT |
+| `node-opcua-service-subscription` | 2.160.0 | MIT |
+| `node-opcua-service-subscription` | 2.186.12 | MIT |
+| `node-opcua-service-translate-browse-path` | 2.159.0 | MIT |
+| `node-opcua-service-translate-browse-path` | 2.186.10 | MIT |
+| `node-opcua-service-write` | 2.159.0 | MIT |
+| `node-opcua-service-write` | 2.186.10 | MIT |
+| `node-opcua-status-code` | 2.157.0 | MIT |
+| `node-opcua-status-code` | 2.186.7 | MIT |
+| `node-opcua-transport` | 2.158.0 | MIT |
+| `node-opcua-transport` | 2.186.12 | MIT |
+| `node-opcua-types` | 2.159.0 | MIT |
+| `node-opcua-types` | 2.186.10 | MIT |
+| `node-opcua-utils` | 2.157.0 | MIT |
+| `node-opcua-utils` | 2.186.7 | MIT |
+| `node-opcua-variant` | 2.159.0 | MIT |
+| `node-opcua-variant` | 2.186.10 | MIT |
+| `node-opcua-vendor-diagnostic` | 2.160.0 | MIT |
+| `node-opcua-xml2json` | 2.157.0 | MIT |
+| `node-opcua-xml2json` | 2.186.7 | MIT |
+| `node-red` * | 4.1.14 | Apache-2.0 |
+| `node-red-admin` | 4.1.7 | Apache-2.0 |
+| `node-red-contrib-ads-client` * | 2.0.1 | MIT |
+| `node-red-contrib-cip-ethernet-ip` * | 1.1.3 | GPL-3.0-or-later |
+| `node-red-contrib-modbus` * | 5.60.2 | BSD-3-Clause |
+| `node-red-contrib-mssql-plus` * | 0.13.1 | MIT |
+| `node-red-contrib-opcua` * | 0.2.355 | Apache-2.0 |
+| `node-red-contrib-s7` * | 3.1.3 | GPL-3.0-or-later |
+| `node-red-node-snmp` * | 2.1.0 | Apache-2.0 |
+| `node-watch` | 0.7.4 | MIT |
+| `nopt` | 5.0.0 | ISC |
+| `nopt` | 8.1.0 | ISC |
+| `normalize-package-data` | 7.0.1 | BSD-2-Clause |
+| `normalize-url` | 8.1.1 | MIT |
+| `npm` | 10.9.9 | Artistic-2.0 |
+| `npm-audit-report` | 6.0.0 | ISC |
+| `npm-bundled` | 4.0.0 | ISC |
+| `npm-install-checks` | 7.1.2 | BSD-2-Clause |
+| `npm-normalize-package-bin` | 4.0.0 | ISC |
+| `npm-package-arg` | 12.0.2 | ISC |
+| `npm-packlist` | 9.0.0 | ISC |
+| `npm-pick-manifest` | 10.0.0 | ISC |
+| `npm-profile` | 11.0.1 | ISC |
+| `npm-registry-fetch` | 18.0.2 | ISC |
+| `npm-user-validate` | 3.0.0 | BSD-2-Clause |
+| `nth-check` | 2.1.1 | BSD-2-Clause |
+| `number-allocator` | 1.0.14 | MIT |
+| `oauth2orize` | 1.12.0 | MIT |
+| `object-assign` | 4.1.1 | MIT |
+| `object-inspect` | 1.13.4 | MIT |
+| `object-is` | 1.1.6 | MIT |
+| `object-keys` | 1.1.1 | MIT |
+| `object.assign` | 4.1.7 | MIT |
+| `on-exit-leak-free` | 2.1.2 | MIT |
+| `on-finished` | 2.4.1 | MIT |
+| `on-headers` | 1.1.0 | MIT |
+| `open` | 11.0.4 | MIT |
+| `open` | 7.4.2 | MIT |
+| `os-locale` | 6.0.2 | MIT |
+| `p-cancelable` | 3.0.0 | MIT |
+| `p-map` | 7.0.4 | MIT |
+| `package-json-from-dist` | 1.0.1 | BlueOak-1.0.0 |
+| `pacote` | 19.0.2 | ISC |
+| `pacote` | 20.0.1 | ISC |
+| `parse-conflict-json` | 4.0.0 | ISC |
+| `parse5` | 6.0.1 | MIT |
+| `parse5-htmlparser2-tree-adapter` | 6.0.1 | MIT |
+| `parseurl` | 1.3.3 | MIT |
+| `passport` | 0.7.0 | MIT |
+| `passport-http-bearer` | 1.0.1 | MIT |
+| `passport-oauth2-client-password` | 0.1.2 | MIT |
+| `passport-strategy` | 1.0.0 | MIT |
+| `patch-package` * | 8.0.1 | MIT |
+| `path-key` | 3.1.1 | MIT |
+| `path-scurry` | 1.11.1 | BlueOak-1.0.0 |
+| `path-scurry` | 2.0.2 | BlueOak-1.0.0 |
+| `path-to-regexp` | 0.1.13 | MIT |
+| `pause` | 0.0.1 | UNSPECIFIED (no license information in the package) |
+| `pend` | 1.2.0 | MIT |
+| `picomatch` | 2.3.2 | MIT |
+| `picomatch` | 4.0.3 | MIT |
+| `pino` | 10.3.1 | MIT |
+| `pino-abstract-transport` | 3.0.0 | MIT |
+| `pino-std-serializers` | 7.1.0 | MIT |
+| `possible-typed-array-names` | 1.1.0 | MIT |
+| `postcss-selector-parser` | 7.1.1 | MIT |
+| `powershell-utils` | 0.2.1 | MIT |
+| `precond` | 0.2.3 | UNSPECIFIED (no license information in the package) |
+| `proc-log` | 5.0.0 | ISC |
+| `process` | 0.11.10 | MIT |
+| `process-nextick-args` | 2.0.1 | MIT |
+| `process-warning` | 4.0.1 | MIT |
+| `process-warning` | 5.1.0 | MIT |
+| `proggy` | 3.0.0 | ISC |
+| `progress` | 2.0.3 | MIT |
+| `promise-all-reject-late` | 1.0.1 | ISC |
+| `promise-call-limit` | 3.0.2 | ISC |
+| `promise-retry` | 2.0.1 | MIT |
+| `promzard` | 2.0.0 | ISC |
+| `proper-lockfile` | 4.1.2 | MIT |
+| `proxy-addr` | 2.0.7 | MIT |
+| `proxy-from-env` | 2.1.0 | MIT |
+| `pseudomap` | 1.0.2 | ISC |
+| `pvtsutils` | 1.3.6 | MIT |
+| `pvutils` | 1.2.0 | MIT |
+| `qrcode-terminal` | 0.12.0 | Apache 2.0 |
+| `qs` | 6.15.3 | BSD-3-Clause |
+| `quick-format-unescaped` | 4.0.4 | MIT |
+| `quick-lru` | 5.1.1 | MIT |
+| `random-bytes` | 1.0.0 | MIT |
+| `range-parser` | 1.2.1 | MIT |
+| `raw-body` | 2.5.3 | MIT |
+| `raw-body` | 3.0.0 | MIT |
+| `react` * | 19.2.8 | MIT |
+| `react-dom` * | 19.2.8 | MIT |
+| `read` | 3.0.1 | ISC |
+| `read` | 4.1.0 | ISC |
+| `read-cmd-shim` | 5.0.0 | ISC |
+| `read-package-json-fast` | 4.0.0 | ISC |
+| `readable-stream` | 3.6.2 | MIT |
+| `readable-stream` | 4.7.0 | MIT |
+| `readdirp` | 4.1.2 | MIT |
+| `real-require` | 0.2.0 | MIT |
+| `real-require` | 1.0.0 | MIT |
+| `reflect-metadata` | 0.2.2 | Apache-2.0 |
+| `require-directory` | 2.1.1 | MIT |
+| `require-from-string` | 2.0.2 | MIT |
+| `resolve-alpn` | 1.2.1 | MIT |
+| `responselike` | 3.0.0 | MIT |
+| `ret` | 0.5.0 | MIT |
+| `retry` | 0.12.0 | MIT |
+| `reusify` | 1.1.0 | MIT |
+| `rfdc` | 1.4.1 | MIT |
+| `rimraf` | 4.4.1 | ISC |
+| `run-applescript` | 7.1.0 | MIT |
+| `safe-buffer` | 5.1.2 | MIT |
+| `safe-buffer` | 5.2.1 | MIT |
+| `safe-regex-test` | 1.1.0 | MIT |
+| `safe-regex2` | 5.1.1 | MIT |
+| `safe-stable-stringify` | 2.5.0 | MIT |
+| `safer-buffer` | 2.1.2 | MIT |
+| `sax` | 1.6.1 | BlueOak-1.0.0 |
+| `scheduler` | 0.27.0 | MIT |
+| `secure-json-parse` | 4.1.0 | BSD-3-Clause |
+| `semver` | 7.7.4 | ISC |
+| `semver` | 7.8.5 | ISC |
+| `send` | 0.19.2 | MIT |
+| `serialport` | 10.5.0 | MIT |
+| `serialport` | 13.0.0 | MIT |
+| `serve-static` | 1.16.3 | MIT |
+| `set-cookie-parser` | 2.7.2 | MIT |
+| `set-function-length` | 1.2.2 | MIT |
+| `setprototypeof` | 1.2.0 | ISC |
+| `shebang-command` | 2.0.0 | MIT |
+| `shebang-regex` | 3.0.0 | MIT |
+| `side-channel` | 1.1.1 | MIT |
+| `side-channel-list` | 1.0.1 | MIT |
+| `side-channel-map` | 1.0.1 | MIT |
+| `side-channel-weakmap` | 1.0.2 | MIT |
+| `signal-exit` | 3.0.7 | ISC |
+| `signal-exit` | 4.1.0 | ISC |
+| `sigstore` | 3.1.0 | Apache-2.0 |
+| `slash` | 2.0.0 | MIT |
+| `smart-buffer` | 4.2.0 | MIT |
+| `socks` | 2.8.10 | MIT |
+| `socks` | 2.8.7 | MIT |
+| `socks-proxy-agent` | 8.0.5 | MIT |
+| `sonic-boom` | 4.2.1 | MIT |
+| `source-map` | 0.6.1 | BSD-3-Clause |
+| `source-map-support` | 0.5.21 | MIT |
+| `spdx-correct` | 3.2.0 | Apache-2.0 |
+| `spdx-exceptions` | 2.5.0 | CC-BY-3.0 |
+| `spdx-expression-parse` | 3.0.1 | MIT |
+| `spdx-expression-parse` | 4.0.0 | MIT |
+| `spdx-license-ids` | 3.0.23 | CC0-1.0 |
+| `split2` | 4.2.0 | ISC |
+| `sprintf-js` | 1.1.3 | BSD-3-Clause |
+| `sshpk` | 1.18.0 | MIT |
+| `ssri` | 12.0.0 | ISC |
+| `statuses` | 2.0.1 | MIT |
+| `statuses` | 2.0.2 | MIT |
+| `sterfive-bonjour-service` | 1.1.4 | MIT |
+| `streamsearch` | 1.1.0 | MIT |
+| `string_decoder` | 1.3.0 | MIT |
+| `string-width` | 4.2.3 | MIT |
+| `string-width` | 5.1.2 | MIT |
+| `string-width-cjs` | 4.2.3 | MIT |
+| `strip-ansi` | 6.0.1 | MIT |
+| `strip-ansi` | 7.2.0 | MIT |
+| `strip-ansi-cjs` | 6.0.1 | MIT |
+| `supports-color` | 7.2.0 | MIT |
+| `supports-color` | 9.4.0 | MIT |
+| `table-layout` | 4.1.1 | MIT |
+| `tar` | 7.5.22 | BlueOak-1.0.0 |
+| `tarn` | 3.1.2 | MIT |
+| `task-easy` | 0.2.1 | MIT |
+| `tedious` | 18.6.2 | MIT |
+| `text-table` | 0.2.0 | MIT |
+| `thenify` | 3.3.1 | MIT |
+| `thenify-ex` | 4.4.0 | MIT |
+| `thread-stream` | 4.2.0 | MIT |
+| `thunky` | 1.1.0 | MIT |
+| `tiny-relative-date` | 1.3.0 | MIT |
+| `tinyglobby` | 0.2.15 | MIT |
+| `tldts` | 6.1.86 | MIT |
+| `tldts-core` | 6.1.86 | MIT |
+| `tmp` | 0.2.7 | MIT |
+| `to-regex-range` | 5.0.1 | MIT |
+| `toad-cache` | 3.7.4 | MIT |
+| `toidentifier` | 1.0.1 | MIT |
+| `tough-cookie` | 5.1.2 | BSD-3-Clause |
+| `treeverse` | 3.0.0 | ISC |
+| `tslib` | 1.14.1 | 0BSD |
+| `tslib` | 2.8.1 | 0BSD |
+| `tsx` * | 4.23.13 | MIT |
+| `tsyringe` | 4.10.0 | MIT |
+| `tuf-js` | 3.1.0 | MIT |
+| `tunnel` | 0.0.6 | MIT |
+| `tweetnacl` | 0.14.5 | Unlicense |
+| `type-is` | 1.6.18 | MIT |
+| `typedarray` | 0.0.6 | MIT |
+| `typescript` | 7.0.2 | Apache-2.0 |
+| `typical` | 7.3.0 | MIT |
+| `uglify-js` | 3.19.3 | BSD-2-Clause |
+| `uid-safe` | 2.1.5 | MIT |
+| `uid2` | 0.0.4 | MIT |
+| `underscore` | 1.13.8 | MIT |
+| `undici-types` | 8.9.0 | MIT |
+| `unique-filename` | 4.0.0 | ISC |
+| `unique-slug` | 5.0.0 | ISC |
+| `universalify` | 2.0.1 | MIT |
+| `unpipe` | 1.0.0 | MIT |
+| `util` | 0.12.5 | MIT |
+| `util-deprecate` | 1.0.2 | MIT |
+| `utils-merge` | 1.0.1 | MIT |
+| `validate-npm-package-license` | 3.0.4 | Apache-2.0 |
+| `validate-npm-package-name` | 6.0.2 | ISC |
+| `validate-npm-package-name` | 7.0.2 | ISC |
+| `vary` | 1.1.2 | MIT |
+| `walk-up-path` | 3.0.1 | ISC |
+| `webcrypto-core` | 1.9.2 | MIT |
+| `wget-improved-2` | 3.3.0 | MIT |
+| `which` | 2.0.2 | ISC |
+| `which` | 5.0.0 | ISC |
+| `which-typed-array` | 1.1.24 | MIT |
+| `wordwrapjs` | 5.1.1 | MIT |
+| `worker-factory` | 7.0.50 | MIT |
+| `worker-timers` | 8.0.34 | MIT |
+| `worker-timers-broker` | 8.0.18 | MIT |
+| `worker-timers-worker` | 9.0.15 | MIT |
+| `wrap-ansi` | 7.0.0 | MIT |
+| `wrap-ansi` | 8.1.0 | MIT |
+| `wrap-ansi-cjs` | 7.0.0 | MIT |
+| `write-file-atomic` | 6.0.0 | ISC |
+| `ws` * | 7.5.13 | MIT |
+| `ws` * | 8.21.3 | MIT |
+| `wsl-utils` | 1.0.1 | MIT |
+| `xml-writer` | 1.7.0 | MIT |
+| `xml2js` | 0.6.2 | MIT |
+| `xmlbuilder` | 11.0.1 | MIT |
+| `y18n` | 5.0.8 | ISC |
+| `yallist` | 2.1.2 | ISC |
+| `yallist` | 4.0.0 | ISC |
+| `yallist` | 5.0.0 | BlueOak-1.0.0 |
+| `yaml` | 2.9.1 | ISC |
+| `yargs` | 17.7.2 | MIT |
+| `yargs-parser` | 21.1.1 | ISC |
+| `yauzl` | 3.4.0 | MIT |
+| `zod` * | 4.5.4 | MIT |
+
+Packages marked UNSPECIFIED have no license field in their package metadata; consult
+the package itself. This list is generated by `scripts/acik-kaynak-disa-aktar.mts` and is informational;
+the license files shipped inside each package are authoritative.

@@ -1,0 +1,72 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {Store} from '../apps/server/src/store';
+import {Alarms} from '../apps/server/src/alarms';
+import type {AlarmRule,Sample} from '../packages/contracts/model';
+const directory=()=>fs.mkdtempSync(path.join(os.tmpdir(),'scada-lifecycle-'));
+const rule=(patch:Partial<AlarmRule>={}):AlarmRule=>({id:'r1',name:'Basınç yüksek',tagId:'t1',kind:'high',limit:10,expected:true,deadband:0,delayMs:5000,
+ severity:'warning',message:'',enabled:true,popup:true,ackRequired:true,latch:false,area:'',equipment:'',cause:'',consequence:'',action:'',
+ responseMinutes:0,shelvedUntil:0,shelvedReason:'',shelvedBy:'',...patch});
+const sample=(value:number,quality:Sample['quality']='good'):Sample=>({value,quality,receivedAt:Date.now(),sampledAt:Date.now(),sequence:1});
+test('the delay counts uninterrupted good-quality time, not the outage',()=>{
+ const db=new Store(directory());
+ const samples:Record<string,Sample>={t1:sample(20)};
+ const rules=[rule()];
+ const alarms=new Alarms(db,samples,()=>rules,()=>null);
+ const t0=Date.now();
+ alarms.tick(t0);
+ assert.equal(alarms.active().length,0,'gecikme dolmadan alarm açılmaz');
+ samples.t1=sample(20,'bad');
+ alarms.tick(t0+3000);
+ samples.t1=sample(20);
+ alarms.tick(t0+4000);
+ assert.equal(alarms.active().length,0,'kesintiden önceki bekleme süresi sayılmaz; sayaç sıfırlanır');
+ alarms.tick(t0+4000+5001);
+ assert.equal(alarms.active().length,1,'kesintisiz iyi kalitede gecikme dolunca alarm açılır');
+ db.close();
+});
+test('a raised alarm survives bad quality; only the pending timer resets',()=>{
+ const db=new Store(directory());
+ const samples:Record<string,Sample>={t1:sample(20)};
+ const rules=[rule({delayMs:0})];
+ const alarms=new Alarms(db,samples,()=>rules,()=>null);
+ alarms.tick();
+ assert.equal(alarms.active().length,1);
+ samples.t1=sample(20,'bad');
+ alarms.tick();
+ assert.equal(alarms.active().length,1,'veri bilinmiyorken açık alarm sessizce kapanmaz');
+ db.close();
+});
+test('changing a limit closes the open event with a stated reason',()=>{
+ const db=new Store(directory());
+ const samples:Record<string,Sample>={t1:sample(20)};
+ let rules=[rule({delayMs:0})];
+ const alarms=new Alarms(db,samples,()=>rules,()=>null);
+ alarms.tick();
+ const open=alarms.active()[0];
+ assert.ok(open);
+ const before=rules;
+ rules=[rule({delayMs:0,limit:50})];
+ alarms.applyRuleChanges(before,rules);
+ assert.equal(alarms.active().length,0,'maddi değişiklikte açık olay kapatılır');
+ const cleared=db.alarm(open.id)!;
+ assert.ok(cleared.clearedAt,'olay kapanış zamanı alır');
+ const events=db.events().filter(e=>e.action==='alarm.cleared');
+ assert.match(JSON.stringify(events[0].details),/Kural değişti/,'kapanış gerekçesi denetime yazılır');
+ db.close();
+});
+test('a cosmetic rule change keeps the open event',()=>{
+ const db=new Store(directory());
+ const samples:Record<string,Sample>={t1:sample(20)};
+ let rules=[rule({delayMs:0})];
+ const alarms=new Alarms(db,samples,()=>rules,()=>null);
+ alarms.tick();
+ const before=rules;
+ rules=[rule({delayMs:0,message:'Yeni metin',cause:'Vana kaçırıyor'})];
+ alarms.applyRuleChanges(before,rules);
+ assert.equal(alarms.active().length,1,'metin değişikliği olayı kapatmaz');
+ db.close();
+});

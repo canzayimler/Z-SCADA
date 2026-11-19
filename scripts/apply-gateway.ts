@@ -1,0 +1,3 @@
+import fs from 'node:fs';
+async function main(){const access=JSON.parse(fs.readFileSync('.local/admin-access.json','utf8'));const headers={'Content-Type':'application/json','x-scada-request':'1'};const login=await fetch('http://127.0.0.1:3000/api/login',{method:'POST',headers,body:JSON.stringify(access)});if(!login.ok)throw Error('Yerel giriş başarısız');const cookie=login.headers.get('set-cookie')!.split(';')[0];const r=await fetch('http://127.0.0.1:3000/api/deploy',{method:'POST',headers:{...headers,cookie},body:'{}'});if(!r.ok)throw Error(await r.text());console.log('Node-RED köprüsü uygulandı. Eski demo akışı yedeklendi ve pasifleştirildi. Otomatik PLC yazması gönderilmedi.');}
+main().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,0 +1,91 @@
+import type {SymbolType} from '../contracts/model';
+/* G50: sembolun CIZIMI 120x100 goruntu kutusunun tamamini doldurmaz — tank
+ * kutunun ortasinda kucuk durur. Nesne buyutuldugunde cizim de buyumez,
+ * etrafinda bosluk kalir; iki cismi bitistirmek ya da dikey uzatmak mumkun
+ * olmaz. Asagidaki kutular her turun GERCEK cizim sinirlaridir; nesne
+ * "kirp" ya da "doldur" modundayken goruntu kutusu bunlara daraltilir.
+ *
+ * Tablo elle yazilmadi: her sembol dort durumda (acik/kapali/sayisal/veri
+ * yok) cizilip sinirlari olculdu, cizgi kalinligi icin 2 birim pay birakildi.
+ * `bounds.test.ts` her kosuda yeniden olcup bu tabloyla karsilastirir; cizim
+ * degisirse test duser, tablo sessizce eskimez. */
+export const contentBoxes:Partial<Record<SymbolType,readonly [number,number,number,number]>>={
+ "cylinder":[5,17,91,61],
+ "proximity":[2,23,111,40],
+ "photoelectric":[11,13,98,65],
+ "plc":[26,0,69,81],
+ "weighing":[14,9,92,73],
+ "push-button":[26,8,68,68],
+ "toggle-switch":[12,22,96,44],
+ "key-switch":[22,8,72,78],
+ "indicator":[34,10,52,68],
+ "lamp-square":[26,6,68,78],
+ "bulb":[10,4,100,92],
+ "beacon":[10,12,100,85],
+ "led-bar":[4,22,112,58],
+ "tower-light":[42,6,36,76],
+ "selector":[30,4,60,61],
+ "emergency-stop":[28,8,64,75],
+ "contactor":[24,8,72,62],
+ "breaker":[44,4,40,72],
+ "motor":[31,2,73,72],
+ "pump":[1,11,118,63],
+ "compressor":[2,11,115,63],
+ "fan":[26,6,68,68],
+ "conveyor":[6,26,108,42],
+ "mixer":[28,2,64,78],
+ "heater":[22,12,76,56],
+ "filter":[28,12,64,64],
+ "heat-exchanger":[0,16,120,50],
+ "valve":[10,12,100,50],
+ "check-valve":[0,22,120,50],
+ "butterfly-valve":[0,6,120,66],
+ "ball-valve":[0,6,120,65],
+ "solenoid-valve":[14,2,84,62],
+ "control-valve":[16,11,80,88],
+ "tank":[23,4,74,76],
+ "silo":[26,6,68,86],
+ "vessel":[10,18,100,62],
+ "gauge":[16,18,88,68],
+ "level-bar":[38,4,52,76],
+ "thermometer":[44,4,35,80],
+ "flow-meter":[0,8,120,91],
+ "info":[0,0,24,24],
+ "instrument":[26,12,68,85],
+ "boiler":[18,8,90,86],
+ "burner":[2,32,116,48],
+ "cooling-tower":[0,10,120,82],
+ "centrifuge":[20,6,80,84],
+ "dryer":[0,20,120,74],
+ "agitator":[54,0,21,84],
+ "hoist":[12,3,96,94],
+ "column":[12,2,96,96],
+ "hopper":[18,4,84,92],
+ "drum":[26,2,68,96],
+ "cyclone":[0,2,102,96],
+ "gate-valve":[4,2,112,68],
+ "globe-valve":[2,4,116,70],
+ "three-way-valve":[4,30,112,68],
+ "flange":[2,20,116,60],
+ "transformer":[38,2,44,88],
+ "busbar":[4,38,112,36],
+ "generator":[6,14,109,52],
+ "ups":[6,4,108,62],
+ "inverter":[18,12,84,62],
+ "pv-panel":[12,18,100,54],
+ "battery":[18,18,84,56],
+ "power-meter":[6,4,108,86],
+ "fuse":[8,28,104,34],
+ "disconnector":[34,4,56,80],
+ "ahu":[0,6,120,88],
+ "damper":[2,16,116,68],
+ "coil":[2,6,112,88],
+ "air-filter":[2,18,116,64],
+ "arrow":[8,28,108,44],
+ "callout":[0,80,16,20],
+ "ellipse":[2,4,116,88]
+};
+/** Turun gercek cizim sinirlari; olculmemisse tum goruntu kutusu gecerlidir. */
+export function contentBox(type:string):readonly [number,number,number,number]|undefined{
+ return contentBoxes[type as SymbolType];
+}

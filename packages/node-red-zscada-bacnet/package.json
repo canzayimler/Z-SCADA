@@ -1,0 +1,18 @@
+{
+  "name": "node-red-zscada-bacnet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Z SCADA icin en kucuk BACnet/IP okuma dugumu: tekil (unicast) adresle ReadPropertyMultiple; Who-Is/yayin gondermez.",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["node-red", "bacnet"],
+  "main": "bacnet.js",
+  "node-red": {
+    "version": ">=4.0.0",
+    "nodes": {
+      "zscada-bacnet": "bacnet.js"
+    }
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

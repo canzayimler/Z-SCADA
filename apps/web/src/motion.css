@@ -1,0 +1,131 @@
+/* Sembol hareketi (Faz 3, 2026-09-25). Kural: hareket YALNIZ durumu anlatir (ISA-101, DESIGN.md).
+ * Sus yok; yalnizca durum degisimi daha okunur hale gelir. style.css'ten sonra yuklenir.
+ * prefers-reduced-motion: style.css'teki genel kural tum animasyon ve gecisleri kapatir. */
+
+/* 1) Yumusak kalkis. Rotor sifirdan hizlanir, normal hiza ulasinca duz doner.
+ * Kalkis 180 derece, egri sonu egimi 2: bitis hizi = 2 x 180 / T = 360 / T,
+ * yani dönüş hizina (360 derece / T) tam esit — gecis aninda hiz ziplamaz.
+ * Yon, animation-direction yerine isaretle verilir: ters oynatilan kalkis
+ * yavaslayarak baslardi. */
+.rotor{
+  --spin:2s;
+  animation:rotor-up var(--spin) cubic-bezier(.5,0,.75,.5) both,rotor-run var(--spin) linear var(--spin) infinite
+}
+.rotor.fast{--spin:.9s}
+.canvas-widget .rotor{
+  --spin:calc(2s / var(--symbol-speed,1));
+  animation-duration:var(--spin),var(--spin);
+  animation-delay:0s,var(--spin);
+  animation-direction:normal
+}
+.canvas-widget .rotor.fast{--spin:calc(.9s / var(--symbol-speed,1))}
+@keyframes rotor-up{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(calc(var(--symbol-sign,1) * 180deg))}
+}
+@keyframes rotor-run{
+  from{transform:rotate(calc(var(--symbol-sign,1) * 180deg))}
+  to{transform:rotate(calc(var(--symbol-sign,1) * 540deg))}
+}
+
+/* 2) Durum renkleri sicramaz: calisiyor / duruyor / alarm arasinda kisa gecis. */
+.scada-symbol :is(path,circle,rect,ellipse,polygon,polyline,line,text){
+  transition:fill .35s var(--ease),stroke .35s var(--ease),opacity .35s var(--ease)
+}
+
+/* 3) Seviye kayarak degisir (tank, silo, seviye cubugu). Boru ailesi piksel
+ * koordinatiyla cizildigi icin haric: editorde boyutlandirirken gecikirdi. */
+.scada-symbol:not(.pipe-symbol) rect{
+  transition:fill .35s var(--ease),stroke .35s var(--ease),opacity .35s var(--ease),y .6s var(--ease),height .6s var(--ease),width .6s var(--ease)
+}
+
+/* 3b) Seviye cizgisi dolumla birlikte kayar (tank). */
+.scada-symbol .level-line{transition:d .6s var(--ease),opacity .35s var(--ease)}
+
+/* 3c) Yeni sembol dili (2026-09-28, Rozet ikonlariyla ayni): ince cizgi, yuvarlak birlesim.
+ * Cizim dosyalarindaki eski kalin cizgi degerleri burada tek yerden incelir; boru ailesi
+ * kendi piksel olcusunu korur. CSS stroke-width, SVG ozniteligini gecersiz kilar. */
+.scada-symbol:not(.pipe-symbol) [stroke-width="3"]{stroke-width:2.4}
+.scada-symbol:not(.pipe-symbol) :is([stroke-width="3.5"],[stroke-width="4"]){stroke-width:2.6}
+.scada-symbol:not(.pipe-symbol) :is([stroke-width="5"],[stroke-width="6"]){stroke-width:3}
+.scada-symbol:not(.pipe-symbol) :is([stroke-width="7"],[stroke-width="8"],[stroke-width="10"]){stroke-width:3.4}
+
+/* 3d) Veri sorunu (okunamiyor/bayat): dolu govdeler kesik cizgiyle cizilir ve soluklasir; kapali
+ * (durdu) sembolden boylece ayrisir. Renk tek basina konusmaz, rozet (! / ?) Symbol.tsx'te ve soluklasmaz. */
+.scada-symbol.q-unknown :is(circle,rect,path,ellipse)[fill]:not([fill="none"]){stroke-dasharray:5 4}
+.scada-symbol.q-unknown>:not(.sym-badge){opacity:.55}
+.scada-symbol.q-unknown .sym-badge *{stroke-dasharray:none}
+
+/* 4) "Detayli" sembol stili = "B · Endustriyel metal" (ekran bazinda, 2026-11-18).
+ * Geometri uc stilde aynidir; burada yalniz KAPLAMA degisir: metal govde, dokum govde,
+ * silindir boru, sivi, kadran, tek golge filtresi ve parlayan durum isigi. Sinif sozlugu
+ * packages/symbols/render/kit.tsx'te; degrade/filtre tanimlari tuval basina tek gizli
+ * <defs> (packages/symbols/defs.tsx). Performans: sembol basina en fazla BIR filtre
+ * (.zbody golgesi); durum isigi parlamasi filtresiz yari saydam halkadir. */
+.sym-defs{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+.sym-detailed .scada-symbol{overflow:visible}
+.sym-detailed .scada-symbol .zbody{filter:url(#sym-sh)}
+.sym-detailed .scada-symbol .zb{fill:url(#sym-metal);stroke:#46515c;stroke-width:1.3}
+.sym-detailed .scada-symbol .zc{fill:url(#sym-cast)}
+.sym-detailed .scada-symbol .zp{fill:url(#sym-pipe);stroke:#46515c;stroke-width:1.1}
+.sym-detailed .scada-symbol .zp.zv{fill:url(#sym-pipev)}
+.sym-detailed .scada-symbol .zd{stroke:#192028;opacity:.5}
+.sym-detailed .scada-symbol :is(.zx,.zo){stroke:#46515c}
+[data-theme=dark] .sym-detailed .scada-symbol :is(.zx,.zo),.sym-detailed[data-theme=dark] .scada-symbol :is(.zx,.zo){stroke:#8b96a1}
+.sym-detailed .scada-symbol .zl{fill:url(#sym-liq);fill-opacity:1}
+.sym-detailed .scada-symbol .zdial{fill:url(#sym-dial)}
+.sym-detailed .scada-symbol .zt{fill:#1d242b}
+.sym-detailed .scada-symbol.sym-run .zhalo{opacity:.35}
+.sym-detailed .scada-symbol.sym-run .zvb{fill:currentColor}
+.sym-detailed .scada-symbol .level-line{stroke:#e6f2fb}
+/* Boru ailesi ve hava kanali: degrade yerine parlama cizgisi + metal ton (yatay borunun
+ * sinir kutusu yuksekligi sifirdir, objectBoundingBox degradesi orada cizilemez). */
+.sym-detailed .scada-symbol .zsheen{opacity:.55}
+.sym-detailed .scada-symbol .zpo{stroke:#46515c}
+.sym-detailed .scada-symbol path.zpf:not(.zpo){stroke:#b9c2cb}
+.sym-detailed .scada-symbol .zpo.zpf{fill:#b9c2cb}
+.sym-detailed .scada-symbol .zduct{fill:#b9c2cb}
+.sym-detailed .scada-symbol .zductw{stroke:#46515c}
+/* Ariza: govde kirmizi cerceve (yanip sonen ! rozeti Symbol.tsx'te). */
+.sym-detailed .scada-symbol.sym-alarm :is(.zb,.zp,.zo,.zx){stroke:var(--sym-alarm)}
+.sym-detailed .scada-symbol.sym-alarm .zl{fill:var(--sym-alarm);fill-opacity:.6}
+
+/* 5) Durum bandi (main.tsx StatusBanner). Kirmizi yalniz veri/baglanti kaybinda; sari uyari;
+ * mavi-gri bilgi (yeni surum). Giris hareketi tek sefer, surekli yanip sonme yok. */
+
+@keyframes status-in{from{opacity:0;transform:translateY(-6px)}}
+
+/* 6) "Buyuk" yogunluk (tablet / dokunmatik, tercihler): punto ve dokunma alanlari buyur,
+ * tablo satirlari acilir. Operator cizimi (tuval) olceklenmez; yalniz uygulama kabugu. */
+:root[data-density="large"]{font-size:17px}
+:root[data-density="large"] .btn,:root[data-density="large"] .tool,:root[data-density="large"] nav button,:root[data-density="large"] .mode-switch button,:root[data-density="large"] .page-tabs button{min-height:44px}
+:root[data-density="large"] .btn.small{min-height:40px;padding-inline:14px}
+:root[data-density="large"] input,:root[data-density="large"] select{min-height:44px;font-size:15px}
+:root[data-density="large"] td{padding-block:12px;font-size:15px}
+:root[data-density="large"] th{padding-block:12px;font-size:13px}
+:root[data-density="large"] .report-filter-trigger{height:32px;min-width:34px}
+
+/* 7) Bildirim merkezi (StatusBanner.tsx NoticeCenter): sistem durumu ust cubukta simge + acilir liste.
+ * Rozet rengi en agir bildirim: kirmizi veri/baglanti kaybi, sari uyari, celik mavisi bilgi. */
+.notice-center{position:relative;display:inline-flex}
+.notice-trigger{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--txt-muted);cursor:pointer;transition:background var(--motion-fast) var(--ease),color var(--motion-fast) var(--ease)}
+.notice-trigger:hover,.notice-trigger[aria-expanded=true]{background:var(--acc-soft);color:var(--acc-text)}
+.notice-trigger b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:8px;font-size:11px;line-height:18px;font-weight:700;color:#fff;background:var(--acc)}
+.notice-trigger.bad b{background:var(--sym-alarm)}
+.notice-trigger.warn b{background:var(--warn-line)}
+.notice-trigger.bad{color:color-mix(in srgb,var(--sym-alarm) 80%,var(--txt))}
+.notice-trigger.warn{color:var(--warn-text)}
+.notice-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:min(400px,calc(100vw - 24px));max-height:70vh;overflow-y:auto;background:var(--card);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow-md);animation:pop-in var(--motion) var(--ease)}
+.notice-panel header{padding:10px 14px;font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--txt-muted);border-bottom:1px solid var(--line)}
+.notice-item{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:13px;line-height:1.4;box-shadow:inset 3px 0 0 var(--acc)}
+.notice-item:last-child{border-bottom:0}
+.notice-item svg{flex:none;margin-top:1px}
+.notice-item strong{display:block;font-weight:700;color:var(--txt)}
+.notice-item span{display:block;margin-top:2px;color:var(--txt-soft)}
+.notice-item .btn{margin-top:8px;display:inline-flex;align-items:center;gap:6px}
+.notice-item.bad{box-shadow:inset 3px 0 0 var(--sym-alarm)}.notice-item.bad svg{color:var(--sym-alarm)}
+.notice-item.warn{box-shadow:inset 3px 0 0 var(--warn-line)}.notice-item.warn svg{color:var(--warn-line)}
+.notice-item.info svg{color:var(--acc-text)}
+.notice-empty{margin:0;padding:14px;font-size:13px;color:var(--txt-muted)}
+.notice-center.floating{position:fixed;top:10px;right:12px;z-index:70}
+.notice-center.floating .notice-trigger{width:auto;padding:0 12px;box-shadow:var(--shadow-md);font-size:13px}

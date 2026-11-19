@@ -1,0 +1,16 @@
+import type {Renderer} from './ctx';
+import {renderers as sensors} from './sensors';
+import {renderers as signals} from './signals';
+import {renderers as buttons} from './buttons';
+import {renderers as equipment} from './equipment';
+import {renderers as valves} from './valves';
+import {renderers as vessels} from './vessels';
+import {renderers as measure} from './measure';
+import {renderers as pipes} from './pipes';
+import {renderers as layout} from './layout';
+import {renderers as process} from './process';
+import {renderers as electrical} from './electrical';
+import {renderers as hvac} from './hvac';
+import {renderers as live} from './live';
+import {renderers as controls} from './controls';
+export const renderers:Record<string,Renderer>={...sensors,...signals,...buttons,...equipment,...valves,...vessels,...measure,...pipes,...layout,...process,...electrical,...hvac,...live,...controls};

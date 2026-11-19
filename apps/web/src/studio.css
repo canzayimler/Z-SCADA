@@ -1,0 +1,265 @@
+/* Tasarım stüdyosu cilası (2026-09-25). style.css'ten SONRA yüklenir, oradaki kuralları ezer.
+ * Kapsam yalnız editör kabuğu: sembol çizimi ve operatör ekranı değişmez (ISA-101 orada geçerli).
+ * Hareket yalnız standart değişkenlerle: --motion-fast / --motion / --motion-slow / --ease. */
+
+.studio{
+  --studio-lift:0 1px 2px #10283c0f,0 4px 12px #10283c0d;
+  --studio-lift-strong:0 2px 4px #10283c14,0 10px 24px #10283c1a;
+  border-color:var(--line);
+  border-radius:12px;
+  box-shadow:0 1px 2px #10283c0a,0 12px 32px -12px #10283c1f
+}
+[data-theme=dark] .studio{
+  --studio-lift:0 1px 2px #0000004d,0 4px 12px #00000040;
+  --studio-lift-strong:0 2px 4px #00000059,0 10px 24px #00000073;
+  box-shadow:0 12px 32px -12px #00000099
+}
+
+/* --- Araç çubuğu ------------------------------------------------------- */
+.canvas-toolbar{
+  background:linear-gradient(var(--card),color-mix(in srgb,var(--sunken) 60%,var(--card)))
+}
+.tool{
+  border-radius:6px;
+  transition:background var(--motion-fast) var(--ease),color var(--motion-fast) var(--ease),transform var(--motion-fast) var(--ease)
+}
+.tool:active:not(:disabled){transform:scale(.92)}
+.tool.active{box-shadow:inset 0 0 0 1px var(--acc-line)}
+.btn{transition:background var(--motion-fast) var(--ease),border-color var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease),transform var(--motion-fast) var(--ease)}
+.studio .btn:active:not(:disabled){transform:translateY(1px)}
+
+/* --- Çalışma alanı + tuval: masa üstünde kâğıt ------------------------- */
+.canvas-viewport{
+  background-color:var(--sunken);
+  background-image:radial-gradient(color-mix(in srgb,var(--txt-faint) 38%,transparent) 1px,transparent 1.2px);
+  background-size:18px 18px
+}
+.canvas{
+  border-radius:3px;
+  box-shadow:0 0 0 1px var(--line),0 2px 6px #10283c12,0 18px 40px -16px #10283c33
+}
+[data-theme=dark] .canvas{box-shadow:0 0 0 1px var(--line-strong),0 18px 40px -16px #000000b3}
+
+/* Nesne: editörde üzerine gelince ince kılavuz, seçimde yumuşak halka. */
+.studio.editing .canvas-widget{transition:outline-color var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease)}
+.studio.editing .canvas-widget:not(.selected):hover{outline:1px dashed var(--acc-line);outline-offset:2px}
+.canvas-widget.selected{
+  outline:1.5px solid var(--acc);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent);
+  animation:studio-select var(--motion) var(--ease)
+}
+@keyframes studio-select{from{box-shadow:0 0 0 9px color-mix(in srgb,var(--acc) 0%,transparent)}}
+
+/* --- Sekmeler (kütüphane + özellikler) --------------------------------- */
+.library-tabs button,.inspector-tabs button{
+  transition:background var(--motion) var(--ease),color var(--motion) var(--ease),box-shadow var(--motion) var(--ease)
+}
+.library-tabs button:not([aria-selected=true]):hover,.inspector-tabs button:not([aria-selected=true]):hover{
+  color:var(--txt);
+  background:color-mix(in srgb,var(--card) 55%,transparent)
+}
+
+/* --- Kütüphane: önizleme kartları -------------------------------------- */
+.palette{background:linear-gradient(var(--card),color-mix(in srgb,var(--sunken) 45%,var(--card)))}
+.library-grid{gap:8px}
+.library-tile{
+  border-color:var(--line);
+  border-radius:8px;
+  box-shadow:0 1px 1px #10283c08;
+  transition:border-color var(--motion) var(--ease),background var(--motion) var(--ease),box-shadow var(--motion) var(--ease),transform var(--motion) var(--ease)
+}
+.library-tile:hover{
+  border-color:var(--acc-line);
+  background:var(--card);
+  box-shadow:var(--studio-lift-strong);
+  transform:translateY(-2px)
+}
+.library-tile:active{transform:translateY(0) scale(.98);box-shadow:var(--studio-lift)}
+.library-preview{
+  border-radius:8px;
+  background:radial-gradient(circle at 50% 35%,var(--card),var(--sunken))
+}
+.library-preview svg,.library-preview>*{transition:transform var(--motion-slow) var(--ease)}
+.library-tile:hover .library-preview>*{transform:scale(1.06)}
+.library-pick>span{font-size:12px;font-weight:500;color:var(--txt-soft);transition:color var(--motion) var(--ease)}
+.library-tile:hover .library-pick>span{color:var(--txt)}
+
+/* Liste görünümü: satır hover'ı yumuşak, önizleme kutusu gömük. */
+.library-tile.row{box-shadow:none;transition:background var(--motion-fast) var(--ease)}
+.library-tile.row:hover{transform:none;box-shadow:none;background:var(--acc-soft)}
+.library-tile.row .library-preview{background:var(--sunken);border-color:transparent;transition:background var(--motion-fast) var(--ease)}
+.library-tile.row:hover .library-preview{background:var(--card)}
+.library-tile.row:hover .library-preview>*{transform:none}
+
+/* Grup başlıkları: sol vurgu çizgisi hover'da belirir. */
+.palette-group,.panel-title.collapsible{
+  border-radius:6px;
+  padding-left:8px;
+  transition:color var(--motion-fast) var(--ease),background var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease)
+}
+.palette-group:hover,.panel-title.collapsible:hover{
+  background:var(--sunken);
+  box-shadow:inset 2px 0 0 var(--acc-line)
+}
+.palette-group svg,.panel-title.collapsible svg{transition:transform var(--motion) var(--ease)}
+
+/* --- Özellik paneli ----------------------------------------------------- */
+.inspector{background:linear-gradient(var(--card),color-mix(in srgb,var(--sunken) 45%,var(--card)))}
+.property-section{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-top:0;
+  padding-top:0;
+  margin-top:24px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--txt-muted)
+}
+.property-section::before{
+  content:'';
+  width:3px;
+  height:12px;
+  border-radius:2px;
+  background:var(--acc-line)
+}
+.property-section::after{content:'';flex:1;height:1px;background:var(--line)}
+.inspector input,.inspector select,.inspector textarea{
+  transition:border-color var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease),background var(--motion-fast) var(--ease)
+}
+.inspector input:hover:not(:focus),.inspector select:hover:not(:focus){border-color:var(--acc-line)}
+
+/* Renk seçici: yerel kutu yerine yuvarlatılmış renk örneği. */
+.studio input[type=color]{
+  cursor:pointer;
+  padding:4px;
+  border-radius:8px;
+  transition:border-color var(--motion-fast) var(--ease),box-shadow var(--motion-fast) var(--ease)
+}
+.studio input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.studio input[type=color]::-webkit-color-swatch{border:0;border-radius:6px;box-shadow:inset 0 0 0 1px #0000001f}
+.studio input[type=color]::-moz-color-swatch{border:0;border-radius:6px}
+.studio input[type=color]:hover{border-color:var(--acc-line);box-shadow:0 0 0 3px var(--acc-soft)}
+
+/* Kaydırıcı: ince iz, belirgin tutamak. */
+.inspector input[type=range]{accent-color:var(--acc)}
+
+@media (prefers-reduced-motion:reduce){
+  .library-tile:hover,.library-tile:active,.library-tile:hover .library-preview>*,.tool:active,.studio .btn:active{transform:none}
+  .canvas-widget.selected{animation:none}
+}
+
+/* Operator ekrani kompakt basligi (duzenleyici icin): tek satir, cizime yer kalir. */
+.workspace-heading.compact{padding:10px 28px 8px}
+.workspace-heading.compact .eyebrow{display:none}
+.workspace-heading.compact h1{font-size:17px}
+.workspace-heading.compact .mode-switch{padding:2px}
+.workspace-heading.compact .mode-switch button{padding-block:4px}
+
+/* Sabitlenen ekranlar (kenar cubugu). Igne satirin sagindadir; hover'da ya da sabitliyken gorunur. */
+.screen-row{position:relative;display:flex;align-items:center}
+.screen-row>button:first-child{flex:1;min-width:0;padding-right:28px}
+.screen-nav .screen-pin{flex:none;padding:0;display:grid;place-items:center;width:24px;height:24px;margin-left:-26px;border-radius:6px;color:var(--nav-dim);opacity:0;transition:opacity var(--motion-fast) var(--ease),background var(--motion-fast) var(--ease),color var(--motion-fast) var(--ease)}
+.screen-row:hover .screen-pin,.screen-nav .screen-pin:focus-visible,.screen-row.pinned .screen-pin{opacity:1}
+.screen-nav .screen-row.pinned .screen-pin{color:var(--nav-accent-dim)}
+.screen-nav .screen-pin:hover{background:var(--nav-chip);color:var(--nav-title)}
+.sidebar.collapsed .screen-pin{display:none}
+@media(pointer:coarse){.screen-nav .screen-pin{opacity:1;width:36px;height:36px;margin-left:-38px}}
+
+/* Pano (kiosk) kabugu: kenar cubugu ve ust cubuk gizli; durum bandi ve Panelim tum pencere. */
+.app-shell.kiosk .sidebar,.app-shell.kiosk .topbar{display:none}
+.app-shell.kiosk .main{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.app-shell.kiosk .panel-page.is-kiosk:not(:fullscreen){flex:1;min-height:0;height:auto}
+.kiosk-exit{position:fixed;right:12px;bottom:12px;z-index:26;padding:6px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--card);color:var(--txt-muted);font-size:12px;opacity:.18;transition:opacity var(--motion) var(--ease)}
+.kiosk-exit:hover,.kiosk-exit:focus-visible{opacity:1}
+@media(hover:none){.kiosk-exit{opacity:.6}}
+
+/* Kayitli filtreler (FilterBar SavedFilters): ozet satirinin saginda, sutun filtre paneliyle ayni dil. */
+.filter-summary{position:relative}
+.saved-filters{position:relative;margin-left:auto}
+.filter-summary .saved-filters-trigger{border:0;background:none;color:var(--acc-text);font:inherit;font-size:12px;cursor:pointer;padding:2px 4px;border-radius:6px;transition:background var(--motion-fast) var(--ease)}
+.filter-summary .saved-filters-trigger:hover,.filter-summary .saved-filters-trigger.active{background:var(--acc-soft)}
+.saved-filters .report-filter-popover{top:calc(100% + 6px);left:auto;right:0;width:300px}
+.saved-filters-list{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:2px;max-height:220px;overflow:auto}
+.saved-filters-list li{display:flex;align-items:center;gap:4px}
+.filter-summary .saved-filters-apply{flex:1;text-align:left;padding:7px 9px;border:0;border-radius:6px;background:none;color:var(--txt);font:inherit;font-size:13px;cursor:pointer}
+.filter-summary .saved-filters-apply:hover{background:var(--acc-soft);color:var(--acc-text)}
+.filter-summary .saved-filters-drop{width:26px;height:26px;border:0;border-radius:6px;background:none;color:var(--txt-muted);cursor:pointer;font-size:16px}
+.filter-summary .saved-filters-drop:hover{background:color-mix(in srgb,var(--sym-alarm) 12%,transparent);color:var(--sym-alarm)}
+.saved-filters-new{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--line)}
+.saved-filters-new input{min-height:32px}
+.filter-summary .saved-filters-apply:hover,.filter-summary .saved-filters-trigger:hover{text-decoration:none}
+.filter-summary .saved-filters-new .btn{border:1px solid var(--line-strong);background:var(--card);padding:4px 12px;color:var(--txt)}
+.filter-summary .saved-filters-new .btn:hover:not(:disabled){text-decoration:none;border-color:var(--acc-line)}
+
+/* Operator seridi: son 3 komut. Dogrulanamayan/basarisiz 10 dk kirmizi cerceveli. */
+.runtime-commands{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
+.cmd-chip{padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:var(--sunken);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.cmd-chip.ok{border-color:color-mix(in srgb,var(--run) 35%,var(--line))}
+.cmd-chip.bad{border-color:var(--sym-alarm);background:color-mix(in srgb,var(--sym-alarm) 10%,var(--card));color:color-mix(in srgb,var(--sym-alarm) 80%,var(--txt));font-weight:600}
+.cmd-chip:has(.cmd-stop){max-width:none}
+.cmd-stop{margin-left:8px;padding:1px 8px;border:1px solid var(--sym-alarm);border-radius:6px;background:var(--card);color:var(--sym-alarm);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cmd-stop:hover{background:color-mix(in srgb,var(--sym-alarm) 12%,var(--card))}
+.image-tile .drop.armed{width:auto;padding:0 6px;background:var(--sym-alarm);color:#fff;font-size:11px;font-weight:700;border-radius:6px}
+
+/* Telefon (<=600 px): kenar cubugu cekmece. 780 px kurali etiketleri gizliyordu; acik cekmecede geri gelir. */
+.mobile-menu,.mobile-nav-backdrop{display:none}
+@media(max-width:600px){
+  .mobile-menu{display:grid;place-items:center;flex:none;width:44px;height:44px;margin-left:-8px;border-radius:8px;color:var(--txt-soft)}
+  .mobile-menu .burger{display:grid;gap:4px;width:18px}
+  .mobile-menu .burger i{display:block;height:2px;border-radius:2px;background:currentColor}
+  .app-shell>.sidebar{position:fixed;inset:0 auto 0 0;z-index:62;width:264px;padding:18px 12px 0;transform:translateX(-105%);transition:transform var(--motion-slow) var(--ease);box-shadow:none;overflow-y:auto}
+  .app-shell>.sidebar.mobile-open{transform:none;box-shadow:var(--shadow-right)}
+  .mobile-nav-backdrop{display:block;position:fixed;inset:0;z-index:61;background:#0b141a59;animation:status-in var(--motion) var(--ease)}
+  .sidebar.mobile-open .nav-label{display:flex}
+  .sidebar.mobile-open .screen-nav{display:block}
+  .sidebar.mobile-open nav button span,.sidebar.mobile-open nav button small{display:inline}
+  .sidebar.mobile-open nav button{justify-content:flex-start;padding:11px 12px}
+  .sidebar.mobile-open nav{gap:2px}
+  .sidebar.mobile-open .profile>div{display:block}
+  .sidebar.mobile-open .profile>button{display:grid}
+  .sidebar.mobile-open .nav-toggle{display:none}
+}
+
+/* Telefon operator listesi (RuntimeList). Durum sol cizgide + metinle (ISA-101, renk tek basina konusmaz). */
+.runtime-view-switch{display:flex;gap:3px;margin:10px 16px 8px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--sunken)}
+.runtime-view-switch button{flex:1;min-height:40px;border-radius:6px;color:var(--txt-soft);font-weight:500;transition:background var(--motion-fast) var(--ease),color var(--motion-fast) var(--ease)}
+.runtime-view-switch button[aria-checked=true]{background:var(--card);color:var(--acc-text);font-weight:600;box-shadow:var(--shadow-sm)}
+.runtime-list{list-style:none;margin:0 16px 12px;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.runtime-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:10px 14px 10px 16px;border-bottom:1px solid var(--line);box-shadow:inset 4px 0 0 transparent}
+.runtime-row:last-child{border-bottom:0}
+.runtime-row>div{display:flex;flex-direction:column;min-width:0}
+.runtime-row strong{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.runtime-row small{font-family:Consolas,monospace;font-size:11px;color:var(--txt-muted)}
+.runtime-row b{flex:none;font-size:18px;font-variant-numeric:tabular-nums;text-align:right}
+.runtime-row.on{box-shadow:inset 4px 0 0 var(--run)}.runtime-row.on b{color:var(--run)}
+.runtime-row.off b{color:var(--txt-soft)}
+.runtime-row.stale{box-shadow:inset 4px 0 0 var(--warn-line)}.runtime-row.stale b{color:var(--warn-text);font-size:14px}
+.runtime-row.bad{box-shadow:inset 4px 0 0 var(--sym-alarm)}.runtime-row.bad b{color:var(--sym-alarm);font-size:14px}
+
+/* Telefon yatay taşma (denetim 2026-11-18, 375 px): sayfa yatay kaymaz.
+ * Üst çubuk: yalnız geçerli sayfa adı (kısaltılır), durum simgeleri sığar.
+ * Sütun filtreli tablolar kendi içinde kayar; sütun başlığındaki filtre paneli kesilmesin diye
+ * telefonda ekranın altına sabitlenen açılır panel olur. Kullanıcı satırı düğmeleri alta sarar. */
+@media(max-width:600px){
+  .topbar{gap:8px}
+  .breadcrumbs{flex:1;min-width:0;overflow:hidden;white-space:nowrap}
+  .breadcrumbs>span{display:none}
+  .breadcrumbs strong{overflow:hidden;text-overflow:ellipsis}
+  .top-status{flex:none;gap:4px}
+  .table-wrap.column-filter-table{overflow-x:auto}
+  .report-filter-popover.column,.report-filter-popover.column.align-right{position:fixed;top:auto;left:12px;right:12px;bottom:12px;width:auto;max-height:min(70vh,520px);overflow:auto;z-index:60}
+  .user-row{flex-wrap:wrap;gap:8px 12px}
+}
+/* Stüdyo: 780 px altında .editing 760 px'e zorlanıyordu; özellik çekmecesi (sağa yaslı) ekran dışında,
+ * araç çubuğu kesik kalıyordu. Dar ekranda palet/özellik zaten tuval üstüne kayan çekmece (.compact),
+ * genişliği zorlamaya gerek yok: stüdyo ekrana sığar, tuval kendi içinde kayar. */
+@media(max-width:780px){
+  .editing{min-width:0}
+  .editing .canvas-footer{flex-wrap:wrap;gap:6px;height:auto;min-height:39px;padding:6px 12px}
+}
+/* Dar ekran çekmecesinin kapatma çubuğu: çekmece araç çubuğunu örttüğü için aç/kapa düğmesine
+ * ulaşılamıyordu. Esc de kapatır. */
+.drawer-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 4px 14px;font-size:12px;font-weight:600;color:var(--txt-soft)}
