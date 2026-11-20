@@ -5,6 +5,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 
+/* Dile bagimsiz iyi bilinen SID'ler (Administrators, SYSTEM): yerellestirilmis
+ * Windows'ta 'Administrators' adi cozulmez. installer/z-scada.iss ile ayni. */
+export const ICACLS_WELL_KNOWN_GRANTS=['/grant:r','*S-1-5-32-544:F','/grant:r','*S-1-5-18:F'];
+
 /** Dosyayi yalnizca calisan kullaniciya ve yoneticilere birakir. */
 export function restrictSecretFile(file:string,warn:(message:string)=>void=console.warn){
  if(process.platform!=='win32'){
@@ -17,7 +21,7 @@ export function restrictSecretFile(file:string,warn:(message:string)=>void=conso
  const domain=process.env.USERDOMAIN||process.env.COMPUTERNAME||'';
  const user=process.env.USERNAME?(domain?domain+path.win32.sep:'')+process.env.USERNAME:'';
  try{
-  execFileSync('icacls',[file,'/inheritance:r',...(user?['/grant:r',`${user}:F`]:[]),'/grant:r','Administrators:F'],{stdio:'ignore'});
+  execFileSync('icacls',[file,'/inheritance:r',...(user?['/grant:r',`${user}:F`]:[]),...ICACLS_WELL_KNOWN_GRANTS],{stdio:'ignore'});
  }catch{warn('Uyarı: '+path.basename(file)+' dosya izinleri daraltılamadı; dosyayı elle koruyun.');}
 }
 

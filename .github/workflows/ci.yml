@@ -1,0 +1,45 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify OPC UA password patch
+        run: node -e "const fs=require('fs');const ua=fs.readFileSync('node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js','utf8');if(!ua.includes('function safeIdentity(')||ua.includes('userIdentity.password'))throw Error('opcua password patch not applied');console.log('opcua patch OK')"
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Dependency audit (informational)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high

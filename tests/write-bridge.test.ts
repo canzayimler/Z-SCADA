@@ -56,7 +56,8 @@ test('bekci parity: eski Modbus bekcisiyle ayni red kodlari (401/409/400/409 bay
  const ok=h.run(guard,{req:req(),payload:command()});
  assert.equal(ok[last],null);
  const routed=ok.find((x:any)=>x);
- assert.deepEqual({...routed.command,expiresAt:0},{tagId:'tag-m0',value:true,commandId:'cmd-1',expiresAt:0,revision:1,connectionId:'conn-01'});
+ assert.ok(routed.command.writeDeadline>0);
+  assert.deepEqual({...routed.command,expiresAt:0,writeDeadline:undefined},{tagId:'tag-m0',value:true,commandId:'cmd-1',expiresAt:0,writeDeadline:undefined,revision:1,connectionId:'conn-01'});
  assert.equal(h.timers.length,1,'gecerli komut zaman asimi kurar');
  assert.ok(h.timers[0].ms<=WRITE_REPLY_TIMEOUT_MS&&h.timers[0].ms>=50);
  // Ayni commandId ikinci kez: 409 ve HTTP cevabi doner (eskiden yanitsiz kaliyordu).
@@ -117,7 +118,7 @@ test('Modbus dali: kodlama hatalari paylasilan sonuc dugumune red olarak gider; 
  // Hat kilitli: dal bekler (setTimeout 25), kilit kalkinca gonderir.
  h.flow.set('fresh-tag-m0',now());
  h.flow.set('bus-192.0.2.15:502',{at:now(),kind:'read',key:'x'});
- assert.equal(h.run(prep,at({commandId:'c3'})),null);
+ h.flow.set('reply-c3',1);assert.equal(h.run(prep,at({commandId:'c3'})),null);
  assert.equal(h.sent.length,0,'kilit varken yazma gitmez');
  assert.equal(h.timers.at(-1)!.ms,25);
  h.flow.set('bus-192.0.2.15:502',null);
@@ -126,7 +127,7 @@ test('Modbus dali: kodlama hatalari paylasilan sonuc dugumune red olarak gider; 
  assert.deepEqual(h.sent[0][0].payload,{fc:5,unitid:1,address:2048,quantity:1,value:true});
  // Bekleme sirasinda veri bayatlarsa 409.
  h.flow.set('bus-192.0.2.15:502',{at:now(),kind:'read',key:'y'});
- h.run(prep,at({commandId:'c4'}));
+ h.flow.set('reply-c4',1);h.run(prep,at({commandId:'c4'}));
  h.flow.set('fresh-tag-m0',0);
  h.timers.at(-1)!.fn();
  assert.equal(h.sent.at(-1)[2].reject.code,409);

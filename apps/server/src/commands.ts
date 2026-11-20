@@ -31,7 +31,7 @@ export class Commands {
  /** Sunucu script calisirken kapandiysa guvenli durumu haberlesme gelince yazilacak yurutmeler. */
  recovering:Execution[]=[];
  constructor(public store:Store,public samples:Record<string,Sample>,public active:()=>Config|null,public available:()=>boolean,public write:(tagId:string,value:boolean|number,id:string,expiresAt:number,revision:number)=>Promise<void>){
-  this.recovering=store.commands().filter(e=>e.recover);
+  this.recovering=store.recoverableCommands();
  }
  request(input:{id:string;commandId:string;value:boolean|number;screenId:string;screenVersion:number;reason?:string},user:User,screen:ScreenRecord,approvedBy?:string){
   const existing=this.store.command(input.id);if(existing){if(existing.user!==user.username||existing.commandId!==input.commandId||existing.value!==input.value)throw Error('İstek kimliği başka işlemde kullanıldı.');return existing;}

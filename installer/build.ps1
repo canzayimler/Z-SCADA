@@ -178,6 +178,13 @@ Write-Output '4/6 Uretim bagimliliklari yukleniyor...'
 Push-Location $StageApp
 try { Invoke-Native $npm @('ci', '--omit=dev', '--no-audit', '--no-fund') 'Uretim bagimliliklari kurulamadi' }
 finally { Pop-Location }
+# i18next (node-red bagimliligi) typescript'i istege bagli peer olarak bildirir; npm bunu kok devDependency ile eslestirip
+# uretim agacina da koyar (~29 MB: typescript + @typescript/typescript-<platform>). --omit=peer kullanilamaz (OPC UA node-opcua-client
+# gibi gercek peer'leri de dusurur); yalniz bu istege bagli, calisma zamaninda kullanilmayan paketler silinir.
+foreach ($devOnly in @('typescript', '@typescript')) {
+    $devOnlyPath = Join-Path $StageApp (Join-Path 'node_modules' $devOnly)
+    if (Test-Path -LiteralPath $devOnlyPath) { Remove-Item -LiteralPath $devOnlyPath -Recurse -Force }
+}
 # Yerel Node-RED paketi (BACnet): npm ci 'file:' bagimliligini node_modules'a junction olarak baglar. Kurulum paketi
 # junction'a guvenmesin diye baglanti kaldirilip (yalniz baglanti; hedef silinmez) gercek klasor kopyalanir.
 $localNodePkg = Join-Path $StageApp 'node_modules\node-red-zscada-bacnet'
@@ -196,7 +203,7 @@ try {
     # @innovation-system/node-bacnet dahil) + opcua parola yamasi (patches/node-red-contrib-opcua+*.patch) kurulu dosyada
     # uygulanmis mi; gelistirme bagimliligi (aedes: MQTT test broker'i) pakete girmemis mi; paket\ yalniz istenirse var mi.
     $expectPaket = if ($directories -contains 'paket') { 'true' } else { 'false' }
-    $runtimeCheck = "const fs=require('fs'); require.resolve('tsx'); require.resolve('node-red'); for(const p of ['node-red-contrib-modbus','node-red-contrib-opcua','node-red-contrib-s7','node-red-contrib-ads-client','node-red-node-snmp','node-red-contrib-mssql-plus','node-red-contrib-cip-ethernet-ip','node-red-zscada-bacnet','patch-package']){ if(!fs.existsSync('node_modules/'+p+'/package.json')) throw Error(p+' yok') } if(fs.lstatSync('node_modules/node-red-zscada-bacnet').isSymbolicLink()) throw Error('node-red-zscada-bacnet hala baglanti (junction)'); for(const [d,p] of [['node-red-node-snmp','net-snmp'],['node-red-contrib-mssql-plus','mssql'],['node-red-contrib-cip-ethernet-ip','ethernet-ip'],['node-red-zscada-bacnet','@innovation-system/node-bacnet']]) require.resolve(p,{paths:[require('path').resolve('node_modules',d)]}); const ua=fs.readFileSync('node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js','utf8'); if(!ua.includes('function safeIdentity(') || ua.includes('userIdentity.password')) throw Error('node-red-contrib-opcua parola yamasi uygulanmamis'); if(fs.existsSync('node_modules/aedes')) throw Error('gelistirme bagimliligi aedes pakette'); if(fs.existsSync('paket')!==$expectPaket) throw Error('paket klasoru beklenmedik durumda'); console.log('Runtime OK')"
+    $runtimeCheck = "const fs=require('fs'); require.resolve('tsx'); require.resolve('node-red'); for(const p of ['node-red-contrib-modbus','node-red-contrib-opcua','node-red-contrib-s7','node-red-contrib-ads-client','node-red-node-snmp','node-red-contrib-mssql-plus','node-red-contrib-cip-ethernet-ip','node-red-zscada-bacnet','patch-package']){ if(!fs.existsSync('node_modules/'+p+'/package.json')) throw Error(p+' yok') } if(fs.lstatSync('node_modules/node-red-zscada-bacnet').isSymbolicLink()) throw Error('node-red-zscada-bacnet hala baglanti (junction)'); for(const [d,p] of [['node-red-node-snmp','net-snmp'],['node-red-contrib-mssql-plus','mssql'],['node-red-contrib-cip-ethernet-ip','ethernet-ip'],['node-red-zscada-bacnet','@innovation-system/node-bacnet']]) require.resolve(p,{paths:[require('path').resolve('node_modules',d)]}); const ua=fs.readFileSync('node_modules/node-red-contrib-opcua/opcua/102-opcuaclient.js','utf8'); if(!ua.includes('function safeIdentity(') || ua.includes('userIdentity.password')) throw Error('node-red-contrib-opcua parola yamasi uygulanmamis'); if(fs.existsSync('node_modules/aedes')) throw Error('gelistirme bagimliligi aedes pakette'); for(const p of ['react','react-dom','lucide-react','@fontsource','@typescript','typescript']){ if(fs.existsSync('node_modules/'+p)) throw Error('gelistirme/on yuz bagimliligi pakette: '+p) } if(fs.existsSync('paket')!==$expectPaket) throw Error('paket klasoru beklenmedik durumda'); console.log('Runtime OK')"
     Invoke-Native $stageNode @('-e', $runtimeCheck) 'Runtime dogrulamasi basarisiz'
 }
 finally { Pop-Location }

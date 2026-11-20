@@ -24,7 +24,7 @@ export function registerAuth(ctx:AuthContext){
 const accessFile=path.join(ctx.store.directory,'admin-access.json');
 let defaultCheck:{hash:string;ok:boolean}|null=null;
 async function defaultLogin(req:any):Promise<{username:string;password:string}|null>{
- if(!LOOPBACK.includes(req.ip)||!fs.existsSync(accessFile))return null;
+ if(process.env.SCADA_DISABLE_DEFAULT_LOGIN==='1'||!LOOPBACK.includes(req.ip)||!fs.existsSync(accessFile))return null;
  try{
   const access=JSON.parse(fs.readFileSync(accessFile,'utf8'));
   if(typeof access?.username!=='string'||typeof access?.password!=='string')return null;
@@ -45,12 +45,17 @@ function createUser(username:string,password:string,role:string){ctx.store.db.pr
 function activeAdmins(){return (ctx.store.db.prepare("SELECT COUNT(*) n FROM users WHERE role='admin' AND disabled=0").get() as any).n as number;}
 function revokeSessions(userId:string){return ctx.store.db.prepare('DELETE FROM sessions WHERE user_id=?').run(userId).changes;}
 ctx.app.post('/api/login',async (req:any,reply:any)=>{
- const b=z.object({username:z.string().max(50),password:z.string().max(200)}).parse(req.body);const key=req.ip,prior=ctx.attempts.get(key);if(prior&&prior.until>Date.now()&&prior.count>=10)throw Error('Çok fazla deneme; bir dakika bekleyin.');
+ const b=z.object({username:z.string().max(50),password:z.string().max(200)}).parse(req.body);const ip=req.ip,now=Date.now();
+ // Suresi dolan kayitlar silinir: Map sinirsiz buyumesin.
+ for(const [k,v] of ctx.attempts)if(v.until<=now)ctx.attempts.delete(k);
+ const userKey='user:'+b.username.toLowerCase();
+ const blocked=(k:string)=>{const a=ctx.attempts.get(k);return !!a&&a.until>now&&a.count>=10;};
+ if(blocked(ip)||blocked(userKey))throw Error('Çok fazla deneme; bir dakika bekleyin.');
  const row=ctx.store.db.prepare('SELECT * FROM users WHERE username=?').get(b.username) as any;
  const [salt,expected]=(row?.hash||'invalid:'+randomBytes(64).toString('hex')).split(':');const actual=await ctx.scryptAsync(b.password,salt,64);
- if(!row||!timingSafeEqual(actual,Buffer.from(expected,'hex'))){ctx.attempts.set(key,{count:prior&&prior.until>Date.now()?prior.count+1:1,until:Date.now()+60000});throw Error('Kullanıcı adı veya parola yanlış.');}
+ if(!row||!timingSafeEqual(actual,Buffer.from(expected,'hex'))){for(const k of [ip,userKey]){const p=ctx.attempts.get(k);ctx.attempts.set(k,{count:p&&p.until>now?p.count+1:1,until:now+60000});}throw Error('Kullanıcı adı veya parola yanlış.');}
  if(row.disabled)throw Error('Bu hesap devre dışı bırakıldı.');
- ctx.attempts.delete(key);const t=randomBytes(32).toString('hex');ctx.store.db.prepare('INSERT INTO sessions (token,user_id,expires,reauth) VALUES (?,?,?,?)').run(ctx.hash(t),row.id,Date.now()+ctx.sessionHours*3600000,Date.now());reply.setCookie('scada',t,{...ctx.cookieOptions,maxAge:ctx.sessionHours*3600});return {user:{id:row.id,username:row.username,role:row.role}};
+ ctx.attempts.delete(ip);ctx.attempts.delete(userKey);const t=randomBytes(32).toString('hex');ctx.store.db.prepare('INSERT INTO sessions (token,user_id,expires,reauth) VALUES (?,?,?,?)').run(ctx.hash(t),row.id,Date.now()+ctx.sessionHours*3600000,Date.now());reply.setCookie('scada',t,{...ctx.cookieOptions,maxAge:ctx.sessionHours*3600});return {user:{id:row.id,username:row.username,role:row.role}};
 });
 ctx.app.post('/api/logout',async (req:any,reply:any)=>{const raw=ctx.app.parseCookie(req.headers.cookie||'').scada;if(raw)ctx.store.db.prepare('DELETE FROM sessions WHERE token=?').run(ctx.hash(raw));reply.clearCookie('scada',{...ctx.cookieOptions});return {ok:true};});
 ctx.app.post('/api/reauth',async (req:any)=>{
@@ -108,8 +113,8 @@ ctx.app.post('/api/password',async (req:any,reply:any)=>{
  const [salt,expected]=row.hash.split(':');
  if(!timingSafeEqual(await ctx.scryptAsync(b.current,salt,64),Buffer.from(expected,'hex')))throw Error('Mevcut parola yanlış.');
  ctx.store.transaction(()=>{ctx.store.db.prepare('UPDATE users SET hash=? WHERE id=?').run(passwordHash(b.password),u.id);revokeSessions(u.id);ctx.store.audit(u.username,'user.password.changed',{id:u.id});});
- reply.clearCookie('scada',{path:'/'});return {ok:true,reauth:true};
+ reply.clearCookie('scada',{...ctx.cookieOptions});return {ok:true,reauth:true};
 });
-ctx.app.post('/api/users',async (req:any)=>{const u=ctx.requireRole(req,['admin']);const b=z.object({username:z.string().min(3).max(50),password:z.string().min(12).max(200),role:z.enum(['admin','designer','operator','viewer'])}).parse(req.body);createUser(b.username,b.password,b.role);ctx.store.audit(u.username,'user.created',{username:b.username,role:b.role});return {ok:true};});
+ctx.app.post('/api/users',async (req:any)=>{const u=ctx.requireRole(req,['admin']);ctx.requireFresh(req);const b=z.object({username:z.string().min(3).max(50),password:z.string().min(12).max(200),role:z.enum(['admin','designer','operator','viewer'])}).parse(req.body);createUser(b.username,b.password,b.role);ctx.store.audit(u.username,'user.created',{username:b.username,role:b.role});return {ok:true};});
 
 }

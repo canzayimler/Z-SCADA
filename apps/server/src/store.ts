@@ -45,7 +45,8 @@ export class Store {
   this.migrate();
   if(!this.get('config')){this.set('config',seedConfig);this.set('activeConfig',null);this.saveScreen({id:seedScreen.id,name:seedScreen.name,version:1,publishedVersion:1,draft:seedScreen,published:seedScreen});this.revision(seedScreen,1);}
   if(!this.screen('screen-utility-demo')){const demo=utilityDemoScreen(this.config());this.saveScreen({id:demo.id,name:demo.name,version:1,publishedVersion:1,draft:demo,published:demo});this.revision(demo,1);}
-  for(const c of this.commands())if(!finalStatuses.includes(c.status)){
+  const open=(this.db.prepare('SELECT body FROM commands').all() as any[]).map(r=>JSON.parse(r.body) as Execution).filter(c=>!finalStatuses.includes(c.status));
+  for(const c of open){
    // Yarim kalan script: guvenli durum haberlesme gelince Commands.tick'te yazilir (recover).
    if(c.kind==='script'){c.status='uncertain';c.recover=true;c.message='Sunucu script çalışırken kapandı; haberleşme gelince güvenli durum yazılacak.';}
    else{c.status='uncertain';c.message='Sunucu yeniden başladı; komut tekrar gönderilmedi.';}
@@ -65,7 +66,8 @@ export class Store {
   if(!fresh&&current<Store.SCHEMA_VERSION){
    // Donusum oncesi yedek; geri donus mumkun kalsin.
    const backup=path.join(this.directory,`pre-migration-v${current}-${Date.now()}.sqlite`);
-   try{fs.copyFileSync(path.join(this.directory,'scada.sqlite'),backup);}catch{}
+   try{this.db.exec('PRAGMA wal_checkpoint(TRUNCATE)');}catch{}
+   try{fs.copyFileSync(path.join(this.directory,'scada.sqlite'),backup);}catch(e){console.warn('Göç öncesi yedek alınamadı:',e);}
   }
   const steps:Record<number,()=>void>={
    1:()=>{if(!(this.db.prepare('PRAGMA table_info(users)').all() as any[]).some(c=>c.name==='disabled'))
@@ -106,6 +108,8 @@ export class Store {
  screen(id:string){const r=this.db.prepare('SELECT body FROM screens WHERE id=?').get(id) as any;return r?JSON.parse(r.body) as ScreenRecord:undefined;}
  saveScreen(s:ScreenRecord){this.db.prepare('INSERT OR REPLACE INTO screens VALUES (?,?)').run(s.id,JSON.stringify(s));}
  revision(s:Screen,version:number){this.db.prepare('INSERT OR REPLACE INTO revisions VALUES (?,?,?,?)').run(s.id,version,JSON.stringify(s),Date.now());}
+ /** Yeniden baslatma sonrasi guvenli duruma donecek TUM scriptler (LIMIT 200 siniri yok). */
+ recoverableCommands():Execution[]{return (this.db.prepare('SELECT body FROM commands').all() as any[]).map(r=>JSON.parse(r.body) as Execution).filter(c=>c.recover===true);}
  commands():Execution[]{return (this.db.prepare('SELECT body FROM commands ORDER BY created DESC LIMIT 200').all() as any[]).map(r=>JSON.parse(r.body));}
  command(id:string):Execution|undefined{const r=this.db.prepare('SELECT body FROM commands WHERE id=?').get(id) as any;return r?JSON.parse(r.body):undefined;}
  saveCommand(c:Execution){c.updatedAt=Date.now();this.db.prepare('INSERT OR REPLACE INTO commands VALUES (?,?,?)').run(c.id,JSON.stringify(c),c.createdAt);}
@@ -133,7 +137,7 @@ export class Store {
  writeHistory(rows:{tagId:string;at:number;value:number|null;quality:string}[]){
   if(!rows.length)return;
   const stmt=this.db.prepare('INSERT OR REPLACE INTO history VALUES (?,?,?,?)');
-  for(const r of rows)stmt.run(r.tagId,r.at,r.value,r.quality);
+  this.transaction(()=>{for(const r of rows)stmt.run(r.tagId,r.at,r.value,r.quality);});
  }
  /** Zaman araligindaki ornekler; cok nokta varsa esit araliklarla seyreltilir.
   * Seyreltme SQL icinde yapilir (B): eskiden butun satirlar JS'e cekilip orada

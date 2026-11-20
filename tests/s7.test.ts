@@ -76,7 +76,8 @@ test('s7Driver.buildNodes: devre disi cihazin etiketleri ve etiketsiz baglanti a
 test('S7 donusum fonksiyonu: scale/offset uygular, eksik deger bad kalite olur, sahte good uretmez',()=>{
  const tags=[tag('t1','DB1,REAL4','float32',{scale:0.1,offset:5}),tag('t2','M0.0','bool'),tag('t3','MW10','uint16')];
  const nodes=s7Driver.buildNodes([conn()],[device()],tags,{token:'tok',revision:3});
- const convert=new Function('msg','flow',nodes.find(n=>n.type==='function').func);
+ const ctxMap=new Map<string,any>(),context={get:(k:string)=>ctxMap.get(k),set:(k:string,v:any)=>{ctxMap.set(k,v);}};
+  const fnc=new Function('msg','flow','context',nodes.find(n=>n.type==='function').func);const convert=(msg:any,flow:any)=>fnc(msg,flow,context);
  const store=new Map<string,unknown>();const flow={get:(k:string)=>store.get(k),set:(k:string,v:unknown)=>store.set(k,v)};
  const out=convert({payload:{t1:123,t2:1,t3:null}},flow);
  assert.equal(out.payload.token,'tok');

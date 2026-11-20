@@ -98,10 +98,10 @@ const tags=${JSON.stringify(routes)};if(!p||p.revision!==${revision}||typeof p.c
 const t=Object.prototype.hasOwnProperty.call(tags,p.tagId)?tags[p.tagId]:null;if(!t)return fail(400,'Etiket bulunamadı');
 if(Date.now()-(flow.get('fresh-'+p.tagId)||0)>t.staleMs)return fail(409,'Veri güncel değil');
 if(flow.get('command-'+p.commandId))return fail(409,'Komut daha önce alındı');
-flow.set('command-'+p.commandId,Date.now());flow.set('reply-'+p.commandId,Date.now());
-const req=msg.req,res=msg.res,mid=msg._msgid,commandId=p.commandId;
-setTimeout(function(){if(!flow.get('reply-'+commandId))return;flow.set('reply-'+commandId,undefined);const o=Array(${n+1}).fill(null);o[${n}]={_msgid:mid,req:req,res:res,statusCode:502,payload:{ack:false,at:Date.now(),error:'Köprü yazma dalı yanıt vermedi (zaman aşımı)'}};node.send(o);},Math.max(50,Math.min(${WRITE_REPLY_TIMEOUT_MS},p.expiresAt-Date.now()+250)));
-msg.command={tagId:p.tagId,value:p.value,commandId:p.commandId,expiresAt:p.expiresAt,revision:p.revision,connectionId:t.c};
+const nowC=Date.now(),cm=flow.get('command-index')||{};for(const k of Object.keys(cm)){if(nowC-cm[k]>900000){delete cm[k];flow.set('command-'+k,undefined);}}cm[p.commandId]=nowC;flow.set('command-index',cm);flow.set('command-'+p.commandId,nowC);flow.set('reply-'+p.commandId,nowC);
+const req=msg.req,res=msg.res,mid=msg._msgid,commandId=p.commandId,replyMs=Math.max(50,Math.min(${WRITE_REPLY_TIMEOUT_MS},p.expiresAt-Date.now()+250)),writeDeadline=Date.now()+replyMs;
+setTimeout(function(){if(!flow.get('reply-'+commandId))return;flow.set('reply-'+commandId,undefined);const o=Array(${n+1}).fill(null);o[${n}]={_msgid:mid,req:req,res:res,statusCode:502,payload:{ack:false,at:Date.now(),error:'Köprü yazma dalı yanıt vermedi (zaman aşımı)'}};node.send(o);},replyMs);
+msg.command={tagId:p.tagId,value:p.value,commandId:p.commandId,expiresAt:p.expiresAt,writeDeadline:writeDeadline,revision:p.revision,connectionId:t.c};
 out[t.o]=msg;return out;`,x:510,y,wires:[...outputs.map(e=>[e]),[HTTP_RESPONSE_ID]]});
  add(WRITE_RESULT_ID,'function',{name:'Yazma cevabı',outputs:1,func:`const lock=flow.get('bus-'+msg.bus);if(lock&&lock.key===msg.lockKey)flow.set('bus-'+msg.bus,null);
 const id=msg.command&&msg.command.commandId;if(id){if(!flow.get('reply-'+id))return null;flow.set('reply-'+id,undefined);}
@@ -195,7 +195,7 @@ if(t.dataType==='bool'){
  try{regs=encodeValue(v,t);}catch(err){return reject(400,err.message);}
  v=regs.length===1?regs[0]:regs;
 }
-function dispatch(){if(Date.now()>c.expiresAt||Date.now()-(flow.get('fresh-'+t.id)||0)>t.device.staleMs){node.send(reject(409,'Komut süresi veya veri güncelliği doldu'));return;}const busKey=connBus[t.device.connectionId],lock=flow.get('bus-'+busKey);if(lock&&Date.now()-lock.at<connLockMs[t.device.connectionId]){setTimeout(dispatch,25);return;}
+function dispatch(again){if(Date.now()>(c.writeDeadline||c.expiresAt)||(again===true&&!flow.get('reply-'+c.commandId))||Date.now()-(flow.get('fresh-'+t.id)||0)>t.device.staleMs){node.send(reject(409,'Komut süresi veya veri güncelliği doldu'));return;}const busKey=connBus[t.device.connectionId],lock=flow.get('bus-'+busKey);if(lock&&Date.now()-lock.at<connLockMs[t.device.connectionId]){setTimeout(function(){dispatch(true);},25);return;}
 const isArr=Array.isArray(v);
 flow.set('bus-'+busKey,{at:Date.now(),kind:'write',key:c.commandId});msg.bus=busKey;msg.lockKey=c.commandId;msg.payload={fc:t.dataType==='bool'?5:(isArr?16:6),unitid:t.device.slaveId,address:t.address,quantity:isArr?v.length:1,value:v};out[connections.indexOf(t.device.connectionId)]=msg;node.send(out);}
 dispatch();return null;`,x:770,y,wires:[...connIds.map(i=>['scada-write-'+i]),[WRITE_RESULT_ID]]});
@@ -213,12 +213,12 @@ dispatch();return null;`,x:770,y,wires:[...connIds.map(i=>['scada-write-'+i]),[W
    const connDevices=devices.filter(d=>d.enabled&&d.connectionId===conn.id);
    const tasks=connDevices.flatMap(d=>modbusBlocks(tags.filter(t=>t.deviceId===d.id)).map((b,i)=>({...b,unitid:d.slaveId,pollMs:d.pollMs,key:d.id+'-'+i,quantity:b.tags.reduce((s,x)=>s+registerCount(x.dataType),0),fc:({'coil':1,'discrete-input':2,'holding-register':3,'input-register':4} as Record<string,number>)[b.area]})));
    const key='scada-poll-'+conn.id;
-   add(key+'-clock','inject',{name:'Tarama zamanlay?c? ? '+conn.name,props:[{p:'payload'}],payloadType:'date',repeat:'0.1',once:true,onceDelay:1,x:150,y,wires:[[key]]});
-   add(key,'function',{name:'S?ral? tarama ? '+conn.name,outputs:1,func:`const now=Date.now(),lock=flow.get('bus-${busKey}');if(lock&&now-lock.at<${modbusLockMs(conn)})return null;
+   add(key+'-clock','inject',{name:'Tarama zamanlayıcı · '+conn.name,props:[{p:'payload'}],payloadType:'date',repeat:'0.1',once:true,onceDelay:1,x:150,y,wires:[[key]]});
+   add(key,'function',{name:'Sıralı tarama · '+conn.name,outputs:1,func:`const now=Date.now(),lock=flow.get('bus-${busKey}');if(lock&&now-lock.at<${modbusLockMs(conn)})return null;
 const failKey='fail-${busKey}',lastKey='fail-at-${busKey}',fails=flow.get(failKey)||0;
 if(fails>0){const raw=Math.min(${BACKOFF_BASE_MS}*Math.pow(2,fails-1),${BACKOFF_CAP_MS});const spread=raw*${BACKOFF_JITTER}*(Math.random()*2-1);const wait=Math.max(0,Math.min(${BACKOFF_CAP_MS},raw+spread));if(now-(flow.get(lastKey)||0)<wait)return null;}
 const tasks=${JSON.stringify(tasks)};let state=context.get('schedule')||{index:0,due:{}};for(let n=0;n<tasks.length;n++){const i=(state.index+n)%tasks.length,t=tasks[i];if((state.due[t.key]||0)>now)continue;state.index=(i+1)%tasks.length;state.due[t.key]=now+t.pollMs;context.set('schedule',state);flow.set('bus-${busKey}',{at:now,kind:'read',key:t.key});flow.set(lastKey,now);return {block:t,bus:${JSON.stringify(busKey)},lockKey:t.key,payload:{fc:t.fc,unitid:t.unitid,address:t.address,quantity:t.quantity}};}return null;`,x:400,y,wires:[[key+'-read']]});
-   add(key+'-read','modbus-flex-getter',{name:'Oku ? '+conn.name,server:'scada-client-'+conn.id,emptyMsgOnFail:true,keepMsgProperties:true,showErrors:true,showWarnings:true,x:650,y,wires:[[key+'-convert'],[key+'-convert']]});
+   add(key+'-read','modbus-flex-getter',{name:'Oku · '+conn.name,server:'scada-client-'+conn.id,emptyMsgOnFail:true,keepMsgProperties:true,showErrors:true,showWarnings:true,x:650,y,wires:[[key+'-convert'],[key+'-convert']]});
    /* B58: cozme mantigi artik gomulu kopya degil — kanonik decodeRegisters/registerCount
     * modbusCodecSource() ile .toString() olarak buraya tasiniyor (OPC UA tarafindaki
     * opcQuality.toString() deseniyle ayni). DAVRANIS DEGISIKLIGI: kanonik decodeRegisters
@@ -389,7 +389,7 @@ items.forEach((it,i)=>{const nid=String(it&&it.nodeId!==undefined?it.nodeId:it);
  for(const t of list){let value=null;if(quality==='good'||quality==='stale'){if(t.bool){if(typeof raw==='boolean'||raw===0||raw===1)value=!!raw;}else{const n=Number(raw);if(raw!==null&&raw!==''&&Number.isFinite(n))value=Number((n*t.scale+t.offset).toPrecision(15));}}
   flow.set('fresh-'+t.id,value!==null&&quality==='good'?now:0);samples.push({tagId:t.id,value,quality:value===null?'bad':quality,sampledAt:now});}});
 if(!samples.length)return null;
-return {payload:{token:${JSON.stringify(token)},revision:${revision},source:${JSON.stringify(key)},sequence:now,samples}};`,x:720,y,wires:[['scada-ws-out']]});
+let seq=context.get('seq')||0;context.set('seq',++seq);if(!context.get('session'))context.set('session',String(now));return {payload:{token:${JSON.stringify(token)},revision:${revision},source:${JSON.stringify(key)},session:context.get('session'),sequence:seq,samples}};`,x:720,y,wires:[['scada-ws-out']]});
    y+=90;
   }
   return nodes;
@@ -585,7 +585,7 @@ export const s7Driver:Driver={
     vartable:connTags.map(t=>({name:t.id,addr:parseS7Address(t.s7Address!).address}))});
    add(key+'-in','s7 in',{name:'Okuma · '+conn.name,endpoint:key+'-endpoint',mode:'all',variable:'',diff:false,x:150,y,wires:[[key+'-convert']]});
    const meta=Object.fromEntries(connTags.map(t=>[t.id,{bool:t.dataType==='bool',scale:t.scale,offset:t.offset}]));
-   add(key+'-convert','function',{name:'Etiket / kalite (S7)',outputs:1,func:`const meta=${JSON.stringify(meta)};const values=msg.payload&&typeof msg.payload==='object'?msg.payload:{};const now=Date.now();const samples=Object.keys(meta).map(tagId=>{const m=meta[tagId];const raw=values[tagId];let value=null,quality='bad';if(raw!==undefined&&raw!==null){if(m.bool){value=!!raw;quality='good';}else{const n=Number(raw);if(Number.isFinite(n)){value=Number((n*m.scale+m.offset).toPrecision(15));quality='good';}}}flow.set('fresh-'+tagId,value!==null?now:0);return {tagId,value,quality,sampledAt:now};});return {payload:{token:${JSON.stringify(token)},revision:${revision},source:${JSON.stringify(key)},sequence:now,samples}};`,x:400,y,wires:[['scada-ws-out']]});
+   add(key+'-convert','function',{name:'Etiket / kalite (S7)',outputs:1,func:`const meta=${JSON.stringify(meta)};const values=msg.payload&&typeof msg.payload==='object'?msg.payload:{};const now=Date.now();const samples=Object.keys(meta).map(tagId=>{const m=meta[tagId];const raw=values[tagId];let value=null,quality='bad';if(raw!==undefined&&raw!==null){if(m.bool){value=!!raw;quality='good';}else{const n=Number(raw);if(Number.isFinite(n)){value=Number((n*m.scale+m.offset).toPrecision(15));quality='good';}}}flow.set('fresh-'+tagId,value!==null?now:0);return {tagId,value,quality,sampledAt:now};});let seq=context.get('seq')||0;context.set('seq',++seq);if(!context.get('session'))context.set('session',String(now));return {payload:{token:${JSON.stringify(token)},revision:${revision},source:${JSON.stringify(key)},session:context.get('session'),sequence:seq,samples}};`,x:400,y,wires:[['scada-ws-out']]});
    y+=90;
   }
   return nodes;
@@ -673,7 +673,7 @@ export const adsDriver:Driver={
     add(key+'-tag-'+t.id,'change',{name:'',rules:[{t:'set',p:'tagId',pt:'msg',to:t.id,tot:'str'}],x:400,y,wires:[[key+'-convert']]});
     y+=50;
    }
-   add(key+'-convert','function',{name:'Etiket / kalite (ADS)',outputs:1,func:`const meta=${JSON.stringify(meta)};const m=meta[msg.tagId];if(!m)return null;const raw=msg.payload;const now=Date.now();let value=null;if(m.bool){if(typeof raw==='boolean'||raw===0||raw===1)value=!!raw;}else if(typeof raw==='number'||typeof raw==='bigint'){const n=Number(raw);if(Number.isFinite(n))value=Number((n*m.scale+m.offset).toPrecision(15));}flow.set('fresh-'+msg.tagId,value!==null?now:0);return {payload:{token:${JSON.stringify(token)},revision:${revision},source:${JSON.stringify(key)},sequence:now,samples:[{tagId:msg.tagId,value,quality:value!==null?'good':'bad',sampledAt:now}]}};`,x:650,y:y-50,wires:[['scada-ws-out']]});
+   add(key+'-convert','function',{name:'Etiket / kalite (ADS)',outputs:1,func:`const meta=${JSON.stringify(meta)};const m=meta[msg.tagId];if(!m)return null;const raw=msg.payload;const now=Date.now();let value=null;if(m.bool){if(typeof raw==='boolean'||raw===0||raw===1)value=!!raw;}else if(typeof raw==='number'||typeof raw==='bigint'){const n=Number(raw);if(Number.isFinite(n))value=Number((n*m.scale+m.offset).toPrecision(15));}flow.set('fresh-'+msg.tagId,value!==null?now:0);let seq=context.get('seq')||0;context.set('seq',++seq);if(!context.get('session'))context.set('session',String(now));return {payload:{token:${JSON.stringify(token)},revision:${revision},source:${JSON.stringify(key)},session:context.get('session'),sequence:seq,samples:[{tagId:msg.tagId,value,quality:value!==null?'good':'bad',sampledAt:now}]}};`,x:650,y:y-50,wires:[['scada-ws-out']]});
    y+=90;
   }
   return nodes;

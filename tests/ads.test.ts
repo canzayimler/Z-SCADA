@@ -147,7 +147,8 @@ test('adsDriver.buildNodes: devre disi cihaz ve etiketsiz baglanti atlanir, her 
 
 const build=(tags:any[],ctx={token:'tok',revision:3})=>{
  const nodes=adsDriver.buildNodes([conn()],[device()],tags,ctx);
- const convert=new Function('msg','flow',nodes.find(n=>n.type==='function').func) as (msg:any,flow:any)=>any;
+ const ctxMap=new Map<string,any>(),context={get:(k:string)=>ctxMap.get(k),set:(k:string,v:any)=>{ctxMap.set(k,v);}};
+  const fnc=new Function('msg','flow','context',nodes.find(n=>n.type==='function').func) as (msg:any,flow:any,context:any)=>any;const convert=(msg:any,flow:any)=>fnc(msg,flow,context);
  const store=new Map<string,unknown>();const flow={get:(k:string)=>store.get(k),set:(k:string,v:unknown)=>store.set(k,v)};
  return {convert,store,flow};
 };

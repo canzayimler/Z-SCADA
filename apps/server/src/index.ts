@@ -11,6 +11,8 @@ import {backup} from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import {z} from 'zod';
+/** Origin basligindan host; `null`/bozuk deger icin undefined (istek reddedilir, 500 olmaz). */
+export function safeOriginHost(origin:unknown):string|undefined{try{return new URL(String(origin)).host;}catch{return undefined;}}
 import {parseS7Address,isModbus,registerCount,decodeRegisters,configSchema,validateConfig,validateScreen,validateAlarms,validateEquipmentTypes,applyEquipmentBindings,screenSchema,alarmPolicySchema,defaultAlarmPolicy,SHELVE_MAX_MINUTES,userPermissionsSchema,emptyPermissions,permits,visibleScreens,preferencesSchema,defaultPreferences,widgetTagReferenceFields,alarmRulesSchema,LIBRARY_PACK_VERSION,libraryPackSchema,planLibraryMerge,applyLibraryMerge,type Config,type Sample,type User,type ScreenRecord,type Screen,type LibraryChoice} from '../../../packages/contracts/model';
 // B26: navigasyon duzeni ucu icin gövde semasi — ekran id'si dogrulamasi asagida store'a bakarak yapilir.
 import {validateRecipes,recipePreview,type Recipe} from '../../../packages/contracts/recipes';
@@ -64,7 +66,7 @@ const tokenFile=path.join(directory,'gateway-token');
 const gatewayToken=ensureSecretFile(tokenFile,()=>randomBytes(32).toString('hex'));
 // B: logger:false uretimde sessiz kalip "ne oldu" sorusunu cevapsiz birakiyordu — dosyaya JSON log.
 const fileLog=createFileLogger(directory);
-const app=Fastify({loggerInstance:fileLog.logger as any,disableRequestLogging:true,bodyLimit:5*1024*1024});await app.register(cookie);
+const app=Fastify({loggerInstance:fileLog.logger as any,disableRequestLogging:true,trustProxy:process.env.SCADA_TRUST_PROXY==='1',bodyLimit:5*1024*1024});await app.register(cookie);
 /* Beklenmedik hata yakalama: surec sessizce olmesin, izi log dosyasinda kalsin.
  * uncaughtException sonrasi surec bilinmeyen durumda olabilir — bir supervisor
  * (pm2/servis) yeniden baslatabilsin diye exit(1) ile cikiyoruz. unhandledRejection
@@ -117,7 +119,7 @@ app.setErrorHandler((err:any,req,reply)=>{
 app.addHook('onRequest',async(req,reply)=>{
  if(req.url.startsWith('/api')&&!['GET','HEAD'].includes(req.method)){
   if(req.headers['x-scada-request']!=='1')return reply.code(403).send({error:'İstek başlığı eksik.'});
-  if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return reply.code(403).send({error:'Origin reddedildi.'});
+  if(req.headers.origin&&(!req.headers.host||safeOriginHost(req.headers.origin)!==req.headers.host))return reply.code(403).send({error:'Origin reddedildi.'});
  }
 });
 /* --- LAN yayin profili (B40) ----------------------------------------------
@@ -745,7 +747,7 @@ app.server.on('upgrade',(req,socket,head)=>{
     if(!acceptSampledAt(item.sampledAt,now)){noteReject('sampled-at');continue;}
     const valid=item.quality==='good'&&(t.dataType==='bool'?typeof item.value==='boolean':typeof item.value==='number'&&Number.isFinite(item.value));samples[t.id]={value:valid?item.value:null,quality:valid?'good':'bad',receivedAt:now,sampledAt:item.sampledAt,sequence:m.sequence};}
   }catch{ws.close();}});});
- }else if(url.pathname==='/api/live'&&userFor(req.headers)&&(!req.headers.origin||new URL(req.headers.origin).host===req.headers.host)){
+ }else if(url.pathname==='/api/live'&&userFor(req.headers)&&(!req.headers.origin||(Boolean(req.headers.host)&&safeOriginHost(req.headers.origin)===req.headers.host))){
   const v2=url.searchParams.get('proto')==='2';
   wsServer.handleUpgrade(req,socket,head,ws=>{sessions.set(ws,req.headers.cookie||'');if(v2)deltaClients.set(ws,{needFull:false});ws.on('close',()=>{sessions.delete(ws);deltaClients.delete(ws);});ws.send(JSON.stringify(v2?{t:'f',...live()}:live()));});
  }else socket.destroy();
