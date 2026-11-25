@@ -113,6 +113,31 @@ test('failures are silent: no availability, error recorded, logged once per dist
  await garbage.check();assert.equal(garbage.status().available,false);assert.ok(garbage.status().error);
  store.close();
 });
+test('failure cause code and message are captured in error status and log (200 char limit)',async()=>{
+ const store=tmpStore(),logs:any[]=[];
+ const tlsFail:typeof fetch=(async()=>{
+  throw new TypeError('fetch failed',{cause:Object.assign(new Error('self-signed certificate in certificate chain'),{code:'SELF_SIGNED_CERT_IN_CHAIN'})});
+ }) as any;
+ const c=createUpdateChecker({store,current:'0.6.2',env:{},fetchImpl:tlsFail,log:{info:(o:any,m?:string)=>logs.push([o,m])}});
+ await c.check();await c.check();
+ assert.equal(c.status().available,false);
+ assert.equal(c.status().error,'fetch failed (SELF_SIGNED_CERT_IN_CHAIN)');
+ assert.equal(logs.length,1);
+ assert.equal(logs[0][0].causeCode,'SELF_SIGNED_CERT_IN_CHAIN');
+ assert.equal(logs[0][0].error,'fetch failed (SELF_SIGNED_CERT_IN_CHAIN)');
+ assert.equal(logs[0][0].update,true);
+ assert.equal(logs[0][1],'update check failed');
+ // cause.code yoksa cause.message eklenir, 200 karakter siniri korunur
+ const logs2:any[]=[];
+ const longMsg='x'.repeat(250);
+ const msgOnly:typeof fetch=(async()=>{throw new TypeError('fetch failed',{cause:new Error(longMsg)});}) as any;
+ const c2=createUpdateChecker({store,current:'0.6.2',env:{},fetchImpl:msgOnly,log:{info:(o:any,m?:string)=>logs2.push([o,m])}});
+ await c2.check();
+ assert.equal(c2.status().error?.length,200);
+ assert.ok(c2.status().error?.startsWith('fetch failed (xxx'));
+ assert.equal('causeCode' in logs2[0][0],false);
+ store.close();
+});
 
 // --- HTTP uclari: gercek sunucu (inject) + yerel sahte GitHub API
 let createServer:(()=>Promise<any>)|null=null;

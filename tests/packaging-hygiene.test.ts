@@ -43,3 +43,11 @@ test('installer runtime dogrulamasi on yuz ve typescript paketlerini reddediyor'
     assert.ok(check.includes(`'${name}'`), `runtimeCheck ${name} icin koruma icermeli`);
   }
 });
+
+test('baslatici sunucu node.exe argumanlarinda --use-system-ca bayragini koruyor', () => {
+  const launcher = readFileSync(new URL('installer/launcher/ZScada.cs', root), 'utf8');
+  const start = launcher.indexOf('server.Args = new string[]');
+  assert.ok(start > 0, 'ZScada.cs icinde server.Args bulunamadi');
+  const block = launcher.slice(start, launcher.indexOf(';', start));
+  assert.ok(block.includes('"--use-system-ca"'), 'server.Args --use-system-ca icermeli');
+});

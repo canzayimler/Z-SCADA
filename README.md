@@ -8,7 +8,7 @@ Komutlar yazmadan önce denetlenir, yazmadan sonra geri okumayla doğrulanır.
 
 ### ⬇️ [Z SCADA'yı indir (Windows .exe)](https://github.com/canzayimler/Z-SCADA/releases/latest)
 
-**Son sürüm:** [Z-SCADA-Kurulum-0.6.1.exe](https://github.com/canzayimler/Z-SCADA/releases/download/v0.6.1/Z-SCADA-Kurulum-0.6.1.exe)
+**Son sürüm:** [Z-SCADA-Kurulum-0.6.2.exe](https://github.com/canzayimler/Z-SCADA/releases/download/v0.6.2/Z-SCADA-Kurulum-0.6.2.exe)
 · tüm sürümler: [Releases](https://github.com/canzayimler/Z-SCADA/releases) · *Download the Windows installer from Releases.*
 
 ## Kurulum (Windows .exe)

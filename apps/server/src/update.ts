@@ -88,8 +88,14 @@ export function createUpdateChecker(o:Opts){
    release=parsed;error=undefined;checkedAt=now();
    note('ok:'+parsed.latest,'update check ok',{latest:parsed.latest,verified:parsed.verified});
   }catch(e){
-   error=(e as Error)?.name==='TimeoutError'?'Zaman aşımı':String((e as Error)?.message||e).slice(0,200);checkedAt=now();
-   note('err:'+error,'update check failed',{error});
+   const err=e as Error&{cause?:{code?:unknown;message?:unknown}};
+   const cause=err&&typeof err==='object'?err.cause:undefined;
+   const causeCode=typeof cause?.code==='string'&&cause.code.trim()?cause.code.trim():undefined;
+   const causeMsg=typeof cause?.message==='string'&&cause.message.trim()?cause.message.trim():undefined;
+   const base=err?.name==='TimeoutError'?'Zaman aşımı':String(err?.message||e);
+   const detail=causeCode?`${base} (${causeCode})`:causeMsg&&!base.includes(causeMsg)?`${base} (${causeMsg})`:base;
+   error=detail.slice(0,200);checkedAt=now();
+   note('err:'+error,'update check failed',{error,...(causeCode?{causeCode}:{})});
   }
  }
  /** Ayni anda tek denetim; kapaliysa hic ag cagrisi yapmaz. */

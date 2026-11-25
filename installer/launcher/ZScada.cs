@@ -828,7 +828,7 @@ namespace ZScada
                 server.Url = "http://127.0.0.1:" + sv + "/api/health";
                 server.Saniye = 90;
                 server.Args = new string[] {
-                    "--max-http-header-size=32768", "--import", "tsx", "apps/server/src/index.ts" };
+                    "--use-system-ca", "--max-http-header-size=32768", "--import", "tsx", "apps/server/src/index.ts" };
 
                 AsamaAyarla(Basliyor, "Node-RED hazırlanıyor");
                 ScriptCalistir(iptalBayragi, "nodered-guvenlik",
