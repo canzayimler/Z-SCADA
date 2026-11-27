@@ -8,7 +8,7 @@ Komutlar yazmadan önce denetlenir, yazmadan sonra geri okumayla doğrulanır.
 
 ### ⬇️ [Z SCADA'yı indir (Windows .exe)](https://github.com/canzayimler/Z-SCADA/releases/latest)
 
-**Son sürüm:** [Z-SCADA-Kurulum-0.6.2.exe](https://github.com/canzayimler/Z-SCADA/releases/download/v0.6.2/Z-SCADA-Kurulum-0.6.2.exe)
+**Son sürüm:** [Z-SCADA-Kurulum-0.7.0.exe](https://github.com/canzayimler/Z-SCADA/releases/download/v0.7.0/Z-SCADA-Kurulum-0.7.0.exe)
 · tüm sürümler: [Releases](https://github.com/canzayimler/Z-SCADA/releases) · *Download the Windows installer from Releases.*
 
 ## Kurulum (Windows .exe)
@@ -81,8 +81,9 @@ simülatörden okunur, gerçek saha cihazı yoktur.
 ## Özellikler
 
 - **Ekran tasarım stüdyosu:** sürükle-bırak editör, tema duyarlı SVG sembol kütüphanesi
-  (pompa, vana, tank, motor, boru, gösterge…), hizalama/katman, ekipman şablonları, taslak →
-  yayın akışı, ekran sürüm geçmişi, ISA-101 uyumlu stil denetimi.
+  (pompa, vana, tank, motor, boru, gösterge…), dik açılı boru kalemi, 5 vektörel tesis altlığı
+  ve 5 hazır endüstriyel ekran şablonu, hizalama/katman, ekipman şablonları, taslak →
+  yayın akışı, ekran sürüm geçmişi, arduvaz koyu tema ve ISA-101 uyumlu stil denetimi.
 - **Operatör ekranı:** canlı değerler (WebSocket), komut butonları, seçici ve set değeri
   girişleri, kiosk modu, mobil uyumlu arayüz (PWA).
 - **Komut güvenliği:** rol denetimi, bayat veri ve yapılandırma revizyonu kontrolü, izin
