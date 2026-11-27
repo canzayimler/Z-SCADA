@@ -84,7 +84,7 @@ const groupLayout:{name:string;types:string[]}[]=[
  {name:'ÖLÇÜM',types:['gauge','level-bar','thermometer','flow-meter','instrument','value','numeric-input']},
  {name:'BORU HATTI',types:['pipe','elbow','tee','cross','reducer','flange']},
  {name:'GÖSTERGE',types:['trend','pid','alarm-band','alarm-list','data-table','data-card']},
- {name:'YERLEŞİM',types:['text','rectangle','section','ellipse','polygon','star','line','arrow','callout','alarm','info','image']}];
+ {name:'YERLEŞİM',types:['text','rectangle','section','ellipse','polygon','star','line','arrow','callout','alarm','info','image','backdrop']}];
 export const groupOrder=groupLayout.map(g=>g.name);
 /** Katalogdaki BUYUK HARF grup adini arayuzde sade yaziya cevirir; kisaltmalar korunur. */
 const acronyms=new Set(['HVAC','PLC','UPS','PV','&']);
@@ -256,6 +256,14 @@ const raw=[
    {role:'fault',label:'Arıza',kind:'bool'},{role:'tracking',label:'Takip / zorlama',kind:'bool'}]}
  ,{type:'data-card',label:'Kurumsal veri kartı',labelEn:'Corporate data card',group:'GÖSTERGE',size:[300,130],
   variants:[{key:'window',label:'Pencere',labelEn:'Window'},{key:'card',label:'Kart',labelEn:'Card'},{key:'compact',label:'Kompakt satır',labelEn:'Compact row'}]}
+ ,{type:'backdrop',label:'Tesis altlığı',labelEn:'Plant backdrop',group:'YERLEŞİM',size:[560,320],viewBox:'0 0 640 360',
+  variants:[
+   {key:'heat-exchanger-skid',label:'Eşanjör skidi',labelEn:'Heat exchanger skid'},
+   {key:'pump-manifold',label:'Pompa-kolektör',labelEn:'Pump manifold'},
+   {key:'reactor-tank',label:'Tank / reaktör kesiti',labelEn:'Reactor cutaway'},
+   {key:'compressor-dryer',label:'Kompresör + kurutucu',labelEn:'Compressor & dryer'},
+   {key:'ahu-cutaway',label:'AHU kesiti',labelEn:'AHU cutaway'}
+  ]}
 ] as const satisfies readonly SymbolMeta[];
 export type SymbolType=typeof raw[number]['type'];
 /** Katalogun kendisi; alanlari SymbolMeta olarak gorunur (tur birlesimi degil). */
@@ -373,7 +381,7 @@ export function bindingDef(type:string,role:string):BindingDef|undefined{
  * sembol kademe kurali tasiyabilir; disaridakiler ya salt cizimdir (metin,
  * ok, cizgi) ya da kendi ic duzeni zaten durumla surulur (trend, alarm
  * listesi, PID paneli) ve ikinci bir durum katmani yaniltici olurdu. */
-const noStateRules=new Set(['text','rectangle','section','polygon','star','line','ellipse','arrow','callout','image','info','navigation','trend','alarm-band','alarm-list','data-table','pid','slider','keypad','numeric-input','value']);
+const noStateRules=new Set(['text','rectangle','section','polygon','star','line','ellipse','arrow','callout','image','backdrop','info','navigation','trend','alarm-band','alarm-list','data-table','pid','slider','keypad','numeric-input','value']);
 /** Bu tur kademe (durum kurali) tasiyabilir mi? */
 export function allowsStateRules(type:string){return byType.has(type)&&!noStateRules.has(type);}
 /** Bir rol dinamik gorunum rolu mu? */

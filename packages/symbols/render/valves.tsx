@@ -78,7 +78,7 @@ const control:Renderer=(c)=>{const k=kit(c),vb=vbody(c),{w,num,ratio}=c;
  <path {...k.d} d="M62 34v14M62 34h3M62 41h2M62 48h3"/>
  <rect x="52" y={ty} width="8" height="3" rx="1" fill={num===null?'var(--sym-unknown)':c.stroke}/>
  {led(c,56,21,2.4)}
- <text className="zt" x="56" y="95" textAnchor="middle" fontSize="10" fill="var(--sym-label)">{w.labelVisible!==false?w.label:''}{num!==null?' · %'+Math.round(ratio*100):''}</text>
+ <text x="56" y="95" textAnchor="middle" fontSize="10" fill="var(--sym-label)">{w.labelVisible!==false?w.label:''}{num!==null?' · %'+Math.round(ratio*100):''}</text>
 </>;};
 
 /* G04: surgulu vana. Kama dusey seyahat eder: acikta kapak (bonnet) icine cekilir, kapalida

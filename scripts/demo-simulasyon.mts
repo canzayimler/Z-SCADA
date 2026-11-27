@@ -315,7 +315,7 @@ try{
  const widgets:any[]=[];let wn=0;
  const w=(type:string,label:string,x:number,y:number,width:number,height:number,extra:Record<string,unknown>={})=>widgets.push({id:'sim-'+(wn++),type,label,x,y,width,height,...extra});
  const GW=380,GH=420;
- function group(col:number,row:number,title:string,sub:string){const x=30+col*400,y=90+row*440;w('rectangle',title,x,y,GW,GH,{labelVisible:false,fillColor:'#f3f6f8',borderColor:'#c5d0d8',strokeWidth:1,radius:10});w('text',title,x+14,y+8,GW-28,30,{fontSize:18,fontWeight:'700'});w('text',sub,x+14,y+38,GW-28,24,{fontSize:12});return {x,y};}
+ function group(col:number,row:number,title:string,sub:string){const x=30+col*400,y=90+row*440;w('rectangle',title,x,y,GW,GH,{labelVisible:false,fillColor:'',borderColor:'',color:'#64748b',strokeWidth:1,radius:10});w('text',title,x+14,y+8,GW-28,30,{fontSize:18,fontWeight:'700'});w('text',sub,x+14,y+38,GW-28,24,{fontSize:12});return {x,y};}
  w('text','Z SCADA · SİMÜLASYON — her protokol yerel bir simülatörden okunuyor (yalnız 127.0.0.1)',30,20,1500,40,{fontSize:22,fontWeight:'700'});
  w('text','Setpoint yazmaları komut API\'siyle gider, sunucu geri okumasıyla doğrulanır.',30,58,1560,26,{fontSize:13});
  {const {x,y}=group(0,0,'Modbus TCP',`127.0.0.1:${MB_PORT} · slave 1`);

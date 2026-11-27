@@ -97,6 +97,8 @@ Yoğunluk bilgi yoğun ama dağınık değil: 12–13 px etiket ve tablo metni, 
 girer. Filtreler sütun başlığında durur ve arama sırasında sayfa yerinden oynamaz.
 
 **Key Characteristics:**
+- Koyu antrasit enstrüman şasisi sol ray (`--nav-bg: #13171c` açık / `#161b22` koyu) ve iki sütunlu endüstriyel giriş ekranı (sol vitrin endüstriyel arduvaz `#19212b` + şeffaf SVG P&ID şeması + protokol şeridi, sağ tema uyumlu giriş kartı).
+- Koyu tema zifiri siyah değil sakin kontrol odası arduvazıdır (`--app: #1e242b`, `--card: #262d36`).
 - Nötr gri zemin, beyaz kart, tek çelik mavisi etkileşim rengi.
 - Durum renkleri anlam kodu olarak kullanılır, dekor olarak değil; durum her zaman metinle de yazılır.
 - Düz yüzey; derinlik çizgi ve ton farkıyla verilir.
@@ -153,6 +155,7 @@ kalır. Tüm rakamlar `tabular-nums`: canlı değer değişirken genişlik oynam
 
 - Daraltılabilir sol kenar çubuğu (`Ctrl+B`), sağda içerik.
 - ≤1280 px'te Stüdyo paleti ve özellik paneli çekmeceye dönüşür; 1024×768 desteklenir.
+- Tasarım Stüdyosu (Faz 2–3): tek kompakt üst editör barı (mod anahtarı, seçim/boru kalemi ve kayıt araçları bir arada), sağ alt durum çubuğunda açılır çözünürlük seçici, 3 sekmeli sol panel (`Kütüphane` büyük önizleme kartları + yüzer hover önizlemesiyle / `Katmanlar` bağ durumu noktalarıyla / `Şablonlar` 5 hazır ekran şablonu ve 5 vektörel tesis altlığıyla), çoklu seçimde tuval üstü yüzer hizalama çubuğu ve sağ panelde `Detaylı` varyant kartları; Yeni SCADA Ekranı modalında 5 kartlık SVG şablon galerisi.
 - Operatör ekranı ve Panelim sabit tuvalde çizilir, pencereye ölçeklenir; tam ekranda ortak
   `scada-fullscreen-scale` anahtarı kullanılır.
 - `html{scrollbar-gutter:stable}`: filtre veya arama sırasında içerik yatay olarak kaymaz.
@@ -214,8 +217,8 @@ görünür: açılır panel, hover'daki Panelim kutusu, seçili alarm sembolü.
 - Hareket yalnız durumu anlatır: rotor yumuşak kalkar (kalkış bitiş hızı = dönüş hızı), durum renkleri
   0.35 sn geçer, seviye 0.6 sn kayar. Süs animasyonu eklenmez.
 - Ekran "Sembol stili": **Klasik** (nesne renkleri), **ISA-101** (gri, renk yalnız anormalde),
-  **Detaylı** (Klasik renkleri + metalik gövde degradesi + hafif gölge). Operatör ekranında durum
-  okunurluğu öncelikliyse ISA-101 seçilir.
+  **Detaylı** (Klasik renkleri + çok duraklı metalik gövde/boru degradeleri + kadran işlenmiş çerçevesi + cam yansıması + hafif gölge). Operatör ekranında durum
+  okunurluğu öncelikliyse ISA-101 seçilir. Vektörel tesis altlıkları (`backdrop`) ise sıfır kenar iziyle tema duyarlı `--bd-*` token'larını kullanır.
 
 ### Hareket
 - Yalnız üç süre ve tek eğri: `--motion-fast` .15s, `--motion` .22s, `--motion-slow` .3s,

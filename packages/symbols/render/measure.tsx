@@ -24,6 +24,7 @@ const gauge:Renderer=(c)=>{const k=kit(c),{w,num,ratio,stroke}=c;
  const tip=P(210,r-3,cx,cy);
  return <>
   <Body><circle {...k.b} cx={cx} cy={cy} r="31"/></Body>
+  <circle className="zbezel" cx={cx} cy={cy} r="29.4" fill="none" stroke="none"/>
   <circle className="zdial" cx={cx} cy={cy} r="27.5" fill="var(--chip)" stroke={stroke} strokeWidth="1" strokeOpacity=".5"/>
   <path className="zd" d={arc(210,-30,r,cx,cy)} fill="none" stroke="var(--sym-line)" strokeWidth="4" opacity=".9"/>
   {zones.filter(z=>z[1]>z[0]).map(([a,b,col],i)=><path key={i} d={arc(ang(a),ang(b),r,cx,cy)} fill="none" stroke={col} strokeWidth="4" opacity=".75"/>)}
@@ -31,8 +32,10 @@ const gauge:Renderer=(c)=>{const k=kit(c),{w,num,ratio,stroke}=c;
   <path className="zd" d={ticks} fill="none" stroke={stroke} strokeWidth="1.2" opacity=".75"/>
   {sp!==null&&(()=>{const p=P(sp,r+5,cx,cy),q=P(sp,r-6,cx,cy);return <path d={`M${f(p[0])} ${f(p[1])}L${f(q[0])} ${f(q[1])}`} stroke="var(--sym-label)" strokeWidth="2" strokeDasharray="3 2"/>;})()}
   {num!==null&&<g style={{transform:`rotate(${(240*ratio).toFixed(2)}deg)`,transformOrigin:cx+'px '+cy+'px',transition:'transform var(--motion-slow) var(--ease)'}}><path d={`M${cx} ${cy}L${f(tip[0])} ${f(tip[1])}`} stroke={c.band==='normal'||c.band==='unknown'?'var(--sym-fill)':c.bandFill} strokeWidth="2.4" strokeLinecap="round"/></g>}
-  <circle cx={cx} cy={cy} r="3.4" fill={stroke}/>
-  <text className="zt" x={cx} y="76" textAnchor="middle" fill={c.band==='normal'||c.band==='unknown'?'var(--sym-fill)':c.bandFill} fontSize="10.5" fontWeight="700">{num===null?'—':fmtNum(c,num)+(w.unit?' '+w.unit:'')}</text>
+  <path className="zglass" d="M36 46A25 25 0 0 1 84 46A28 18 0 0 0 36 46Z"/>
+  <circle cx={cx} cy={cy} r="3.8" fill={stroke}/>
+  <circle cx={cx} cy={cy} r="1.5" fill="var(--chip)"/>
+  <text className={c.band==='normal'||c.band==='unknown'?'zt':'zt zt-keep'} x={cx} y="76" textAnchor="middle" fill={c.band==='normal'||c.band==='unknown'?'var(--sym-fill)':c.bandFill} fontSize="10.5" fontWeight="700">{num===null?'—':fmtNum(c,num)+(w.unit?' '+w.unit:'')}</text>
  </>;
 };
 
@@ -44,6 +47,7 @@ const levelBar:Renderer=(c)=>{const k=kit(c),{w,num,ratio}=c;
   <Body><rect {...k.b} x="46" y="7" width="28" height="70" rx="6"/></Body>
   <rect className="zdial" x="51" y={top} width="18" height={bottom-top} rx="3" fill="var(--chip)" stroke={c.stroke} strokeWidth="1" strokeOpacity=".5"/>
   <rect className={normal?'zl':undefined} x="52" y={bottom-h} width="16" height={h} rx="2" fill={c.bandFill} fillOpacity={normal?.85:1}/>
+  <rect className="zglass" x="52" y={top+1} width="5" height={bottom-top-2} rx="2"/>
   {c.bandTicks(51,18,bottom,bottom-top)}
   {spr!==null&&<path d={`M44 ${bottom-spr*(bottom-top)}L76 ${bottom-spr*(bottom-top)}`} stroke="var(--sym-label)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="3 2"/>}
   <path {...k.d} opacity={.9} d={[0,.25,.5,.75,1].map(t=>`M77 ${f(bottom-t*(bottom-top))}h${t%.5===0?8:5}`).join('')}/>
@@ -59,6 +63,7 @@ const thermometer:Renderer=(c)=>{const k=kit(c),{w,num,ratio}=c;
   <Body><rect {...k.b} x="51" y="7" width="18" height="56" rx="9"/><circle {...k.b} cx="60" cy="67" r="12"/></Body>
   <rect className="zdial" x="56" y={top-2} width="8" height={bottom-top+8} rx="4" fill="var(--chip)"/>
   <rect x="57" y={bottom-h} width="6" height={h+8} rx="3" fill={c.bandFill}/>
+  <rect className="zglass" x="56.5" y={top-1} width="2.4" height={bottom-top+4} rx="1.2"/>
   <circle cx="60" cy="67" r="8.5" fill={c.bandFill} stroke={c.stroke} strokeWidth="1"/>
   {c.bandTicks(53,14,bottom,bottom-top)}
   {spr!==null&&<path d={`M48 ${bottom-spr*(bottom-top)}L72 ${bottom-spr*(bottom-top)}`} stroke="var(--sym-label)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="3 2"/>}
@@ -126,6 +131,9 @@ renderers['instrument']=(ctx)=>{
   <g className="zbody">{variant==='dcs'
    ?<rect className="zdial" x="28" y="14" width="64" height="64" rx="14" fill="var(--chip)" stroke={tone} strokeWidth="2.6"/>
    :<circle className="zdial" cx="60" cy="46" r="32" fill="var(--chip)" stroke={tone} strokeWidth="2.6"/>}</g>
+  {variant==='dcs'
+   ?<path className="zglass" d="M31 28A10 10 0 0 1 41 17H79A10 10 0 0 1 89 28V36C72 31 48 31 31 36Z"/>
+   :<path className="zglass" d="M33 39A28 28 0 0 1 87 39A30 20 0 0 0 33 39Z"/>}
   {variant==='panel'&&<path d="M28 46L92 46" stroke={tone} strokeWidth="2.2" strokeLinecap="round"/>}
   {variant==='behind'&&<path d="M28 46L92 46" stroke={tone} strokeWidth="2.2" strokeLinecap="round" strokeDasharray="6 4"/>}
   {variant==='dcs'&&<path d="M28 46L92 46" stroke={tone} strokeWidth="2.2" strokeLinecap="round"/>}

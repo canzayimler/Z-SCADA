@@ -85,7 +85,7 @@
 .btn.danger-ghost.confirm{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
 
 /* --- Simge düğmeleri: aynı köşe ve aynı hover ------------------------------ */
-.tool,.icon-btn,.drawer-close,.report-name-edit,.row-actions button,.theme-toggle,.nav-toggle{border-radius:var(--r)}
+.tool,.icon-btn,.drawer-close,.report-name-edit,.row-actions button,.theme-toggle,.prefs-toggle,.nav-toggle{border-radius:var(--r)}
 .tool:hover,.tool.active,.icon-btn:hover,.drawer-close:hover,.report-name-edit:hover,.row-actions button:hover{background:var(--acc-soft);color:var(--acc-text)}
 .row-actions button.del:hover{background:color-mix(in srgb,var(--danger) 10%,transparent);color:var(--danger)}
 

@@ -87,7 +87,8 @@ const synonyms:Record<string,string[]>={
  line:['cizgi','ayirac'],
  ellipse:['elips','oval','daire'],
  rectangle:['alan','kutu','cerceve'],
- image:['gorsel','resim','svg','logo']};
+ image:['gorsel','resim','svg','logo'],
+ backdrop:['altlik','tesis','kesit','skid','esanjor','kompresor','ahu','reaktor','kolektor','arka plan','izometrik','sematik']};
 /* Grup duzeyi es anlamlilar: "valf" yazan biri TUM vanalari gormeli,
  * yalniz adinda "vana" gecen tek sembolu degil. */
 const groupSynonyms:Record<string,string[]>={

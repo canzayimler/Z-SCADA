@@ -60,8 +60,8 @@ const coil:Renderer=(c)=>{const k=kit(c),{w,readings}=c;
   <path d={`M27 23L27 37L${23-gap/2} 30Z`} fill={position==null?'var(--sym-unknown)':c.line} stroke={c.line} strokeWidth="1.2"/>
   {heating&&<path d="M94 14H108L101 9Z" fill={w.color}/>}
   {cooling&&<path d="M94 9H108L101 14Z" fill={w.color}/>}
-  {inlet!==undefined&&<text className="zt" x="64" y="90" fontSize="7" fill="var(--sym-label)">{inlet===null?'Gi —':'Gi '+(Math.round(inlet*10)/10)}</text>}
-  {outlet!==undefined&&<text className="zt" x="88" y="90" fontSize="7" fill="var(--sym-label)">{outlet===null?'Çı —':'Çı '+(Math.round(outlet*10)/10)}</text>}
+  {inlet!==undefined&&<text className="zt" x="64" y="84" fontSize="7" fill="var(--sym-label)">{inlet===null?'Gi —':'Gi '+(Math.round(inlet*10)/10)}</text>}
+  {outlet!==undefined&&<text className="zt" x="88" y="84" fontSize="7" fill="var(--sym-label)">{outlet===null?'Çı —':'Çı '+(Math.round(outlet*10)/10)}</text>}
  </>;};
 /* Hava filtresi: cerceve + pileli medya; kirli = medya golgeli + uyari, tikali = kirmizi. */
 const airFilter:Renderer=(c)=>{const k=kit(c),{w,readings}=c;

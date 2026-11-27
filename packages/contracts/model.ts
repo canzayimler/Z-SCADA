@@ -1804,7 +1804,7 @@ export function permissiveText(u:UnmetPermissive){
 /* Yeni nesnede sembol basligi kapali gelir (kullanıcı kararı, 2026-09-25); yazinin kendisi icerik olan
  * turlerde (metin, buton, alarm, sekil...) acik kalir, yoksa nesne bos gorunur. */
 export function newWidget(type:Widget['type'],x=80,y=80):Widget{const [width,height]=sizes[type]||[120,100];
- const base=widgetSchema.parse({id:crypto.randomUUID(),type,label:labels[type],x,y,width,height,frameFit:'trim',parts:structuredClone(defaultParts[type]||[]),labelVisible:labelIsContent.has(type),...(type==='star'?{sides:5}:{}),...(type==='polygon'||type==='star'?{textAlign:'center'}:{})});
+ const base=widgetSchema.parse({id:crypto.randomUUID(),type,label:labels[type],x,y,width,height,frameFit:'trim',parts:structuredClone(defaultParts[type]||[]),labelVisible:labelIsContent.has(type),...(type==='star'?{sides:5}:{}),...(type==='polygon'||type==='star'?{textAlign:'center'}:{}),...(type==='backdrop'?{animated:false}:{})});
  return {...base,...frameForDrawing(base)};}
 /* --- ISA-101: ekran çiziminden HMI yönetimine geçiş (B41) -----------------
  * Renk, opaklık ve hareket bugün serbestçe ayarlanır; ekran modeli bir

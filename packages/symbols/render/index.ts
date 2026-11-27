@@ -13,4 +13,5 @@ import {renderers as electrical} from './electrical';
 import {renderers as hvac} from './hvac';
 import {renderers as live} from './live';
 import {renderers as controls} from './controls';
-export const renderers:Record<string,Renderer>={...sensors,...signals,...buttons,...equipment,...valves,...vessels,...measure,...pipes,...layout,...process,...electrical,...hvac,...live,...controls};
+import {renderers as backdrops} from './backdrops';
+export const renderers:Record<string,Renderer>={...sensors,...signals,...buttons,...equipment,...valves,...vessels,...measure,...pipes,...layout,...process,...electrical,...hvac,...live,...controls,...backdrops};

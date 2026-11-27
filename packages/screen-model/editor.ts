@@ -1,4 +1,4 @@
-import {newWidget,type Screen,type Widget} from '../contracts/model';
+import {conditionTags,newWidget,writesCommand,type Config,type Screen,type Widget} from '../contracts/model';
 
 /** Mutating editor tools share the same lock semantics. */
 export function patchSelection(widgets:Widget[],ids:string[],patch:Partial<Widget>):Widget[]{
@@ -88,4 +88,47 @@ export function arrangeWidgets(widgets:Widget[],ids:string[],kind:ArrangeKind,ca
  }
  const clamp=(v:number,size:number,limit:number)=>Math.max(0,Math.min(Math.round(v),Math.max(0,limit-size)));
  return widgets.map(w=>px.has(w.id)||py.has(w.id)?{...w,x:clamp(px.get(w.id)??w.x,w.width,canvas.width),y:clamp(py.get(w.id)??w.y,w.height,canvas.height)}:w);
+}
+
+export type BindingStatus={state:'bound'|'unbound'|'broken'|'passive';label:string};
+const PASSIVE_LAYER_TYPES=new Set<Widget['type']>(['pipe','elbow','tee','cross','reducer','flange','duct','text','rectangle','section','ellipse','polygon','star','line','arrow','callout','image','backdrop']);
+const COMMAND_REQUIRED_TYPES=new Set<Widget['type']>(['numeric-input','slider','keypad','pid']);
+
+/** Katman satiri icin nesnenin etiket/komut bag durumunu siniflandirir (Faz 2). */
+export function widgetBindingStatus(w:Widget,config:Config,validScreenIds?:ReadonlySet<string>):BindingStatus{
+ const tagSet=new Set(config.tags.map(t=>t.id));
+ const cmdSet=new Set(config.commands.map(c=>c.id));
+ const tagRefs=[
+  w.tagId,
+  w.setpointTagId,
+  w.visibleTagId,
+  ...w.parts.map(p=>p.tagId),
+  ...(w.bindings||[]).map(b=>b.tagId),
+  ...w.details.filter(d=>d.kind==='value').map(d=>d.tagId),
+  ...(w.visibleCondition?conditionTags(w.visibleCondition):[])
+ ].filter(Boolean);
+ const cmdRefs=[
+  w.commandId,
+  ...w.details.filter(d=>d.kind==='command').map(d=>d.commandId)
+ ].filter(Boolean);
+
+ if(tagRefs.some(id=>!tagSet.has(id))||cmdRefs.some(id=>!cmdSet.has(id))||(w.type==='navigation'&&w.targetScreenId&&validScreenIds&&!validScreenIds.has(w.targetScreenId))){
+  return {state:'broken',label:'Kopuk bağ: silinmiş etiket, komut veya ekran'};
+ }
+ if(w.type==='navigation'){
+  return w.targetScreenId?{state:'bound',label:'Hedef ekran bağlı'}:{state:'unbound',label:'Hedef ekran seçilmedi'};
+ }
+ if(w.type==='alarm-band'||w.type==='alarm-list'){
+  return {state:'bound',label:'Alarm akışına bağlı'};
+ }
+ if((writesCommand(w)||COMMAND_REQUIRED_TYPES.has(w.type))&&!w.commandId){
+  return {state:'unbound',label:'Yazma komutu bağlı değil'};
+ }
+ if(tagRefs.length>0||cmdRefs.length>0){
+  return {state:'bound',label:'Veri bağı tanımlı'};
+ }
+ if(PASSIVE_LAYER_TYPES.has(w.type)){
+  return {state:'passive',label:'Statik çizim nesnesi'};
+ }
+ return {state:'unbound',label:'Etiket bağlı değil'};
 }

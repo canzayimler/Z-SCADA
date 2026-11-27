@@ -73,8 +73,12 @@
 .sym-detailed .scada-symbol :is(.zx,.zo){stroke:#46515c}
 [data-theme=dark] .sym-detailed .scada-symbol :is(.zx,.zo),.sym-detailed[data-theme=dark] .scada-symbol :is(.zx,.zo){stroke:#8b96a1}
 .sym-detailed .scada-symbol .zl{fill:url(#sym-liq);fill-opacity:1}
-.sym-detailed .scada-symbol .zdial{fill:url(#sym-dial)}
-.sym-detailed .scada-symbol .zt{fill:#1d242b}
+.sym-detailed .scada-symbol .zdial{fill:url(#sym-dial);stroke:#6c7884}
+.scada-symbol .zglass{opacity:0;pointer-events:none}
+.sym-detailed .scada-symbol .zglass{fill:url(#sym-glass);opacity:1}
+.sym-detailed .scada-symbol .zbezel{stroke:url(#sym-bezel);stroke-width:2.6}
+[data-theme=dark] .sym-detailed .scada-symbol .zdial,.sym-detailed[data-theme=dark] .scada-symbol .zdial{stroke:#7f8c99}
+.sym-detailed .scada-symbol .zt:not(.zt-keep){fill:#1d242b}
 .sym-detailed .scada-symbol.sym-run .zhalo{opacity:.35}
 .sym-detailed .scada-symbol.sym-run .zvb{fill:currentColor}
 .sym-detailed .scada-symbol .level-line{stroke:#e6f2fb}
@@ -87,7 +91,7 @@
 .sym-detailed .scada-symbol .zduct{fill:#b9c2cb}
 .sym-detailed .scada-symbol .zductw{stroke:#46515c}
 /* Ariza: govde kirmizi cerceve (yanip sonen ! rozeti Symbol.tsx'te). */
-.sym-detailed .scada-symbol.sym-alarm :is(.zb,.zp,.zo,.zx){stroke:var(--sym-alarm)}
+.sym-detailed .scada-symbol.sym-alarm :is(.zb,.zp,.zo,.zx,.zbezel){stroke:var(--sym-alarm)}
 .sym-detailed .scada-symbol.sym-alarm .zl{fill:var(--sym-alarm);fill-opacity:.6}
 
 /* 5) Durum bandi (main.tsx StatusBanner). Kirmizi yalniz veri/baglanti kaybinda; sari uyari;

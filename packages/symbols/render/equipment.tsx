@@ -244,8 +244,8 @@ const heatExchanger=(c:SymbolCtx)=>{const k=kit(c),v=c.variant,{readings}=c;
  const fmt=(x:number|null|undefined)=>x===undefined?'':x===null?'—':String(Math.round(x*10)/10);
  const hasHot=inlet!==undefined||outlet!==undefined,hasCold=coldInlet!==undefined||coldOutlet!==undefined;
  const coldPath=hasCold&&<path d="M24 44H96" fill="none" stroke="#4f9fd6" strokeWidth="2.2" strokeLinecap="round" strokeDasharray={c.active?'5 3':undefined} className={c.active?'flow':''} style={{animationDirection:'reverse'}}/>;
- const hotLabel=hasHot&&<text className="zt" x="24" y="30" fontSize="8" fontWeight="700" fill="#208169">{fmt(inlet)}{inlet!==undefined&&outlet!==undefined?'/':''}{fmt(outlet)}</text>;
- const coldLabel=hasCold&&<text className="zt" x="66" y="58" fontSize="8" fontWeight="700" fill="#4f9fd6">{fmt(coldInlet)}{coldInlet!==undefined&&coldOutlet!==undefined?'/':''}{fmt(coldOutlet)}</text>;
+ const hotLabel=hasHot&&<text className="zt zt-keep" x="24" y="30" fontSize="8" fontWeight="700" fill="#208169">{fmt(inlet)}{inlet!==undefined&&outlet!==undefined?'/':''}{fmt(outlet)}</text>;
+ const coldLabel=hasCold&&<text className="zt zt-keep" x="66" y="58" fontSize="8" fontWeight="700" fill="#4f9fd6">{fmt(coldInlet)}{coldInlet!==undefined&&coldOutlet!==undefined?'/':''}{fmt(coldOutlet)}</text>;
  const overlay=<>{coldPath}{hotLabel}{coldLabel}</>;
  if(v==='plate')return <>
   {hpipe(c,2,22,30)}{hpipe(c,118,98,52)}

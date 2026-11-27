@@ -1,18 +1,42 @@
-import type {Widget} from '../../../packages/contracts/model';
-import {Field,Hint} from './Studio';
-import {variantsOf,panelSpec} from '../../../packages/symbols/catalog';
+import {newWidget,type Screen,type Widget} from '../../../packages/contracts/model';
+import {Field,Hint} from './StudioFields';
+import {variantsOf,panelSpec,sizes} from '../../../packages/symbols/catalog';
+import {Symbol} from '../../../packages/symbols/Symbol';
+import {styledWidget} from '../../../packages/symbols/isa';
 import {snapFrameToDrawing,frameForDrawing,framePadding,stretches} from '../../../packages/symbols/frame';
 /* G47: gorunum paneli her sembole ayni uzun listeyi gosteriyordu — metne
  * animasyon hizi, boruya yazi hizasi, gostergeye cizilmeyen isletme bandi.
  * Panel artik turun cizimi hangi alanlari kullaniyorsa yalnizca onlari
  * gosterir; sira da onemden gelir: once o sembolu sembol yapan ayar
  * (govde tipi, olcek, bant), sonra renk ve yazi, en sonda hareket. */
-export function ObjectAppearance({widget:w,onChange}:{widget:Widget;onChange:(p:Partial<Widget>)=>void}){
+export function ObjectAppearance({widget:w,onChange,symbolStyle='classic',surface='light'}:{widget:Widget;onChange:(p:Partial<Widget>)=>void;symbolStyle?:Screen['symbolStyle'];surface?:'light'|'dark'}){
  const spec=panelSpec(w.type),variants=variantsOf(w.type);
+ const activeVariant=variants.length?(variants.some(v=>v.key===w.variant)?w.variant:variants[0].key):'';
+ const [pw,ph]=sizes[w.type]||[120,100];
+ const vScale=Math.min(76/pw,44/ph);
  return <div className="appearance-fields">
   {spec.variants&&<><div className="property-section">Gövde tipi</div>
-   <Field label="Varyant"><select value={variants.some(v=>v.key===w.variant)?w.variant:variants[0].key} onChange={e=>onChange({variant:e.target.value})}>
-    {variants.map(v=><option key={v.key} value={v.key}>{v.label}</option>)}</select></Field></>}
+   <div className={'variant-grid'+(symbolStyle==='detailed'?' sym-detailed':'')} role="radiogroup" aria-label="Gövde varyantı">
+    {variants.map((v,idx)=>{const active=activeVariant===v.key;
+     const previewWidget=styledWidget({...newWidget(w.type),variant:v.key,color:w.color,label:w.type==='instrument'?'FT-101':w.type==='data-card'?'Basınç':''},symbolStyle,surface);
+     return <div key={v.key} role="radio" tabIndex={active?0:-1} aria-checked={active} className={'variant-tile'+(active?' active':'')}
+      onClick={()=>onChange({variant:v.key})}
+      onKeyDown={e=>{
+       if(e.key==='Enter'||e.key===' '){e.preventDefault();onChange({variant:v.key});return;}
+       if(!['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key))return;
+       e.preventDefault();
+       const nextIdx=(idx+(e.key==='ArrowRight'||e.key==='ArrowDown'?1:-1)+variants.length)%variants.length;
+       onChange({variant:variants[nextIdx].key});
+       e.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="radio"]')[nextIdx]?.focus();
+      }}>
+      <div className="variant-preview" aria-hidden="true" inert>
+       <div className="library-preview-scale" style={{width:pw,height:ph,transform:'scale('+vScale+')'}}>
+        <Symbol w={previewWidget} value={w.type==='tank'?62:w.type==='data-card'?4.2:true} quality="good" samples={{}}/>
+       </div>
+      </div>
+      <span>{v.label}</span>
+     </div>;})}
+   </div></>}
 
   {spec.shape&&<><div className="property-section">Şekil</div>
    {(w.type==='polygon'||w.type==='star')&&<Field label={(w.type==='star'?'Uç sayısı · ':'Kenar sayısı · ')+w.sides}><input type="range" min={w.type==='star'?4:3} max="12" value={w.sides} onChange={e=>onChange({sides:Number(e.target.value)})}/></Field>}

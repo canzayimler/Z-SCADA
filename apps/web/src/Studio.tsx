@@ -2,15 +2,20 @@ import {historyAppender,screenChanged,undoStep,redoStep} from './screenHistory';
 import {NumericEntry} from './NumericEntry';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Plus,Undo2,Redo2,Save,Upload,Copy,Trash2,Lock,Unlock,Layers,AlignLeft,AlignCenter,AlignRight,AlignVerticalJustifyStart,AlignVerticalJustifyCenter,AlignVerticalJustifyEnd,Grid2X2,Download,ZoomIn,ZoomOut,Group,Ungroup,ArrowUp,ArrowDown,Maximize,MousePointer2,Search,ClipboardPaste,ChevronRight,X,PanelLeftOpen,Minimize2,Monitor,RotateCw,RotateCcw,FlipHorizontal2,FlipVertical2,Scissors,BringToFront,SendToBack,CheckSquare,Ruler,Blocks,Unlink2,Eye,EyeOff,Folder,FolderOpen,GripVertical,Crop} from 'lucide-react';
+import {Plus,Undo2,Redo2,Save,Upload,Copy,Trash2,Lock,Unlock,Layers,AlignLeft,AlignCenter,AlignRight,AlignVerticalJustifyStart,AlignVerticalJustifyCenter,AlignVerticalJustifyEnd,Grid2X2,Download,ZoomIn,ZoomOut,Group,Ungroup,ArrowUp,ArrowDown,Maximize,MousePointer2,Search,ClipboardPaste,ChevronDown,X,PanelLeftOpen,Minimize2,Monitor,RotateCw,RotateCcw,FlipHorizontal2,FlipVertical2,Scissors,BringToFront,SendToBack,CheckSquare,Ruler,Blocks,Unlink2,Eye,EyeOff,Folder,FolderOpen,GripVertical,Crop,PenTool} from 'lucide-react';
 import {writeRangeOf,suggestMainTag,applySuggestions,type Config,type Screen,type ScreenRecord,type Widget,type Live,type User,type EquipmentType,type EquipmentInstance,type Sample,newWidget,labels,symbolTypes,symbolGroups,supportsParts,allowsStateRules,bindingDefs,dynamicBindings,isDynamicRole,writesCommand,suggestBindings,equipmentDrift,upgradeEquipmentInstance,reviseEquipmentType,type Binding,isButton,isCommandWidget,hydrateScreen,finalStatuses,statusText,unmetPermissives,permissiveText,conditionTags,evaluateCondition,explainCondition,conditionTests,conditionTestLabels,commandRiskLabels,approvalLabels,instantiateEquipment,applyEquipmentBindings,unboundEquipmentInputs,screenDelta,type Condition,type Part,type Detail,lintScreen,lintSummary,defaultStyleGuide,type LintFinding,linksOf,addLink,removeLink,pruneLinks,moveWithLinks} from '../../../packages/contracts/model';
 import {Symbol} from '../../../packages/symbols/Symbol';
 import {Library} from '../../../packages/symbols/Library';
 import {SymbolDefs} from '../../../packages/symbols/defs';
-import {arrangeWidgets,commonValue,createEquipment,matchSize,moveSelectionTo,patchSelection,withLinkedNeighbors,type ArrangeKind} from '../../../packages/screen-model/editor';
+import {arrangeWidgets,commonValue,createEquipment,equipmentTemplates,matchSize,moveSelectionTo,patchSelection,widgetBindingStatus,withLinkedNeighbors,type ArrangeKind} from '../../../packages/screen-model/editor';
+import {buildScreenTemplate,screenTemplates,type ScreenTemplateId,type ScreenTemplateMeta} from '../../../packages/screen-model/screenTemplates';
+import {BACKDROP_VARIANTS,renderBackdropSvg} from '../../../packages/symbols/render/backdrops';
+import {commitPipePath,findNearestPort,routeOrthogonalLeg,type Point,type PortHit} from '../../../packages/screen-model/pipePen';
 import {fitToPort,hasPorts,portSnap,portWeight,portsOf,type Snap} from '../../../packages/screen-model/ports';
 import {snapFrameToDrawing,stretches} from '../../../packages/symbols/frame';
 import {ObjectAppearance} from './ObjectAppearance';
+import {Field,Hint} from './StudioFields';
+export {Field,Hint};
 import {SearchSelect} from './SearchSelect';
 import type {PickOption} from './pick';
 import {exportScreenSvg} from './exportSvg';
@@ -42,8 +47,8 @@ export function commandPickOptions(config:Config,filter?:(c:Config['commands'][n
 let keepFullscreen=false,navigatedAt=0;
 const handleDirections=['nw','n','ne','w','e','sw','s','se'] as const;
 const handleLabels:Record<string,string>={nw:'Sol üstten boyutlandır',n:'Üstten boyutlandır',ne:'Sağ üstten boyutlandır',w:'Soldan boyutlandır',e:'Sağdan boyutlandır',sw:'Sol alttan boyutlandır',s:'Alttan boyutlandır',se:'Sağ alttan boyutlandır'};
-type Props={record:ScreenRecord;records:ScreenRecord[];config:Config;live:Live;user:User;mode:'runtime'|'editor'|'preview';onRefresh:()=>Promise<void>;onScreen:(id:string)=>void;notify:(s:string,tone?:'info'|'error')=>void;registerLeave:(fn:()=>Promise<boolean>)=>void;language?:'tr'|'en';theme?:'light'|'dark';equipmentTypes?:EquipmentType[];homeScreenId?:string};
-export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,notify,registerLeave,language='tr',theme='light',equipmentTypes:projectEquipmentTypes,homeScreenId=''}:Props){
+type Props={record:ScreenRecord;records:ScreenRecord[];config:Config;live:Live;user:User;mode:'runtime'|'editor'|'preview';canEdit?:boolean;onModeChange?:(mode:'runtime'|'editor'|'preview')=>void;onRefresh:()=>Promise<void>;onScreen:(id:string)=>void;onCreateFromTemplate?:(templateId:ScreenTemplateId)=>Promise<void>;notify:(s:string,tone?:'info'|'error')=>void;registerLeave:(fn:()=>Promise<boolean>)=>void;language?:'tr'|'en';theme?:'light'|'dark';equipmentTypes?:EquipmentType[];homeScreenId?:string};
+export function Studio({record,records,config,live,user,mode,canEdit=false,onModeChange,onRefresh,onScreen,onCreateFromTemplate,notify,registerLeave,language='tr',theme='light',equipmentTypes:projectEquipmentTypes,homeScreenId=''}:Props){
  // Tembel başlangıç: 600 nesnede derin kopya + hydrate her render'da boşa çalışıyordu.
  const [screen,setScreen]=useState<Screen>(()=>hydrateScreen(structuredClone(mode==='runtime'?(record.published||record.draft):record.draft)));
  const [version,setVersion]=useState(record.version),[selection,setSelection]=useState<string[]>([]),[zoom,setZoom]=useState(1),[grid,setGrid]=useState(true),[dirty,setDirty]=useState(false),[saving,setSaving]=useState(false),[conflict,setConflict]=useState<{version:number;draft:Screen;updatedBy:string;updatedAt:number}|null>(null);
@@ -79,10 +84,28 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   setScreen(hydrateScreen(structuredClone(next.published||next.draft)));
   notify('Ekran yeni yayına geçirildi (v'+next.publishedVersion+').');
  }
- const [layersOpen,setLayersOpen]=useState(false),[layerSearch,setLayerSearch]=useState('');
+ const [paletteTab,setPaletteTab]=useState<'library'|'layers'|'templates'>('library'),[layerSearch,setLayerSearch]=useState(''),[templateSearch,setTemplateSearch]=useState('');
+ const [pendingTemplate,setPendingTemplate]=useState<ScreenTemplateMeta|null>(null);
+ const templateModalRef=useModal<HTMLDivElement>(!!pendingTemplate,useCallback(()=>setPendingTemplate(null),[]));
  // Editorde gecici gizleme ve katman klasoru katlama: yalniz tasarim goruntusunu etkiler, yayina gitmez.
  const [hiddenLayers,setHiddenLayers]=useState<string[]>([]),[collapsedLayers,setCollapsedLayers]=useState<string[]>([]);
  const layerDrag=useRef<string>('');
+ const [resOpen,setResOpen]=useState(false);
+ const resRef=useRef<HTMLDivElement>(null);
+ const resTriggerRef=useRef<HTMLButtonElement>(null);
+ const [pipePen,setPipePen]=useState(false);
+ const [pipeDraft,setPipeDraft]=useState<{points:Point[];startSnap:PortHit|null;lastAxis?:'h'|'v'}|null>(null);
+ const [pipeHover,setPipeHover]=useState<{point:Point;snap:PortHit|null;shift:boolean}|null>(null);
+ const [isDragging,setIsDragging]=useState(false);
+ const screenIdSet=useMemo(()=>new Set(records.map(r=>r.id)),[records]);
+ useEffect(()=>{
+  if(!resOpen)return;
+  const close=(e:PointerEvent)=>{if(resRef.current&&!resRef.current.contains(e.target as Node))setResOpen(false);};
+  const onEsc=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.stopPropagation();setResOpen(false);resTriggerRef.current?.focus();}};
+  document.addEventListener('pointerdown',close);
+  document.addEventListener('keydown',onEsc,true);
+  return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',onEsc,true);};
+ },[resOpen]);
 
  const [inspectorTab,setInspectorTab]=useState<'appearance'|'binding'|'layout'>('appearance'),[compact,setCompact]=useState(()=>window.matchMedia(COMPACT_QUERY).matches),[showLibrary,setShowLibrary]=useState(()=>!window.matchMedia(COMPACT_QUERY).matches),[showInspector,setShowInspector]=useState(()=>!window.matchMedia(COMPACT_QUERY).matches),[focus,setFocus]=useState(false);const editorFitted=useRef(false);
  useEffect(()=>{document.documentElement.classList.toggle('studio-focus',focus&&mode==='editor');return()=>document.documentElement.classList.remove('studio-focus');},[focus,mode]);
@@ -111,7 +134,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
  useEffect(()=>{current.current=screen;},[screen]);
  // Ekipman tipleri proje yanıtıyla gelir (prop); Studio eskiden açılışta /api/project'i ikinci kez çekiyordu.
  // Yerel kopya kayıttan sonra hemen güncellenir; proje tazelenince prop'tan eşitlenir.
- const [equipmentTypes,setEquipmentTypes]=useState<EquipmentType[]>(()=>projectEquipmentTypes||[]),[equipmentOpen,setEquipmentOpen]=useState(false);
+ const [equipmentTypes,setEquipmentTypes]=useState<EquipmentType[]>(()=>projectEquipmentTypes||[]);
  /* Ekipman tipi silme iki adimlidir: ilk tik onay ister, 4 sn icinde ikinci tik siler.
   * Ekranlara yerlestirilmis ornekler (nesneler) yerinde kalir; yalniz sablonla bagi kopar. */
  const [pendingTypeDelete,setPendingTypeDelete]=useState('');
@@ -243,6 +266,8 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
  }
  function add(type:Widget['type'],x=Math.min(current.current.width-260,Math.round(((viewport.current?.scrollLeft||0)/zoom+80)/10)*10),y=Math.min(current.current.height-180,Math.round(((viewport.current?.scrollTop||0)/zoom+80)/10)*10)){const taken=(px:number,py:number)=>current.current.widgets.some(o=>o.x===px&&o.y===py);for(let i=0;i<30&&taken(x,y);i++){x+=20;y+=20;}const w=newWidget(type,x,y);change({...current.current,widgets:[...current.current.widgets,w]});setSelection([w.id]);}
  function addEquipment(id:string,x=60,y=80){const widgets=createEquipment(id,x,y);change({...current.current,widgets:[...current.current.widgets,...widgets]});setSelection(widgets.map(w=>w.id));notify('Ekipman grubu eklendi. Bağlantı sekmesinden etiketleri seçin.');}
+ function addBackdrop(variant:string,x=60,y=110){const meta=BACKDROP_VARIANTS.find(b=>b.key===variant);const w={...newWidget('backdrop',x,y),variant,label:meta?.label||'Tesis altlığı',labelVisible:false,animated:false};change({...current.current,widgets:[w,...current.current.widgets]});setSelection([w.id]);notify((meta?.label||'Tesis altlığı')+' en alt katmana eklendi.');}
+ function applyScreenTemplate(tpl:ScreenTemplateMeta){const built=buildScreenTemplate(tpl.id,current.current.id,current.current.name);change({...built,id:current.current.id,name:current.current.name});setSelection([]);setPendingTemplate(null);notify(tpl.name+' şablonu tuvale uygulandı. Geri almak için Ctrl+Z.');}
  function styleSelection(patch:Partial<Widget>){change({...current.current,widgets:patchSelection(current.current.widgets,selection,patch)});}
  function remove(){change(pruneLinks({...current.current,widgets:current.current.widgets.filter(w=>!selection.includes(w.id)||w.locked)}));setSelection([]);}
  function duplicate(){const groupMap=new Map<string,string>();const copies=current.current.widgets.filter(w=>selection.includes(w.id)).map(w=>{if(w.groupId&&!groupMap.has(w.groupId))groupMap.set(w.groupId,crypto.randomUUID());return {...w,id:crypto.randomUUID(),x:w.x+24,y:w.y+24,locked:false,groupId:groupMap.get(w.groupId)||''};});change({...current.current,widgets:[...current.current.widgets,...copies]});setSelection(copies.map(w=>w.id));}
@@ -383,6 +408,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   const list=current.current.widgets.filter(w=>selection.includes(w.id)&&!w.locked);
   const box=selectionBox(list);if(!box)return;
   // Geçmişe kayıt burada değil, bırakınca ve yalnız gerçekten değiştiyse (endDrag).
+  setIsDragging(true);
   dragging.current={startX:e.clientX,startY:e.clientY,widgets:structuredClone(list),kind:'group',id:'',dir,cx:0,cy:0,angle:0,box,before:current.current};
   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
  }
@@ -414,7 +440,8 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   change({...current.current,widgets:ws},false);
  }
  function pointerDown(e:React.PointerEvent,w:Widget,kind:'move'|'resize'|'rotate'='move',dir=''){
-  if(!editor)return;e.stopPropagation();const ids=w.groupId?screen.widgets.filter(x=>x.groupId===w.groupId).map(x=>x.id):[w.id];const next=e.shiftKey?Array.from(new Set([...selection,...ids])):selection.includes(w.id)?selection:ids;setSelection(next);if(w.locked)return;
+  if(!editor||pipePen)return;e.stopPropagation();const ids=w.groupId?screen.widgets.filter(x=>x.groupId===w.groupId).map(x=>x.id):[w.id];const next=e.shiftKey?Array.from(new Set([...selection,...ids])):selection.includes(w.id)?selection:ids;setSelection(next);if(w.locked)return;
+  setIsDragging(true);
   dragging.current={startX:e.clientX,startY:e.clientY,widgets:structuredClone(current.current.widgets.filter(x=>next.includes(x.id)&&!x.locked)),kind,id:w.id,dir,...pivot(w,e),before:current.current};{const picked=new Set(next);setPorts(kind==='move'&&current.current.widgets.some(x=>picked.has(x.id)&&hasPorts(x.type)));}(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
  }
  /** Sürükleme başındaki nesneler id'ye göre; her pointermove'da find ile taramamak için bir kez kurulur. */
@@ -454,7 +481,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   setGuides(lines);
   const merged=d.kind==='move'?withLinkedNeighbors({...current.current,widgets:ws},d.widgets,ws):{...current.current,widgets:ws};
   change(merged,false);}
- function endDrag(){const snap=lastSnap.current,d=dragging.current;dragging.current=null;lastSnap.current=null;
+ function endDrag(){const snap=lastSnap.current,d=dragging.current;dragging.current=null;lastSnap.current=null;setIsDragging(false);
   setGuides({x:[],y:[]});setPorts(false);setSnapped(null);
   if(snap){
    // Uc uca yapisma anlik hizalamadan kalici proses baglantisina donusur (B25).
@@ -477,12 +504,62 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   const next={...resized,x:Math.round(resized.x+anchor.x-moved.x),y:Math.round(resized.y+anchor.y-moved.y)};
   change({...current.current,widgets:widgets.map(w=>w.id===moving.id?next:w)},false);
  }
- function bandDown(e:React.PointerEvent){if(!editor)return;setSelection([]);const rect=canvas.current!.getBoundingClientRect();
+ function pipePointFromEvent(e:{clientX:number;clientY:number;altKey?:boolean}){
+  const raw=canvasPoint(e);
+  const tol=16/Math.max(zoom,.2);
+  const visibleWidgets=current.current.widgets.filter(w=>!(editor&&hiddenLayers.includes(w.id)));
+  const snap=findNearestPort(visibleWidgets,raw,tol);
+  if(snap)return {point:{x:Math.round(snap.x),y:Math.round(snap.y)},snap};
+  const g=current.current.gridSize||10;
+  const pt=grid&&!e.altKey?{x:Math.round(raw.x/g)*g,y:Math.round(raw.y/g)*g}:{x:Math.round(raw.x),y:Math.round(raw.y)};
+  return {point:pt,snap:null};
+ }
+ function finishPipeDraft(pointsToCommit:Point[],startSnap:PortHit|null,endSnap:PortHit|null){
+  const res=commitPipePath(current.current,pointsToCommit,{startSnap,endSnap,autoFit});
+  if(res.createdIds.length){change(res.screen);setSelection(res.createdIds);}
+  setPipeDraft(null);
+ }
+ function bandDown(e:React.PointerEvent){
+  if(!editor)return;
+  if(pipePen){
+   if(e.button!==0)return;
+   e.stopPropagation();
+   const {point,snap}=pipePointFromEvent(e);
+   if(!pipeDraft){
+    setSelection([]);
+    setPipeDraft({points:[point],startSnap:snap,lastAxis:snap?.axis});
+    setPipeHover({point,snap,shift:e.shiftKey});
+    return;
+   }
+   const last=pipeDraft.points[pipeDraft.points.length-1];
+   if(Math.hypot(point.x-last.x,point.y-last.y)<4){
+    if(pipeDraft.points.length>=2)finishPipeDraft(pipeDraft.points,pipeDraft.startSnap,null);
+    return;
+   }
+   const leg=routeOrthogonalLeg(last,point,pipeDraft.lastAxis,e.shiftKey);
+   const merged=[...pipeDraft.points,...leg.slice(1)];
+   const samePort=!!(snap&&pipeDraft.startSnap&&snap.widgetId===pipeDraft.startSnap.widgetId&&snap.portIndex===pipeDraft.startSnap.portIndex);
+   if(snap&&!samePort){
+    finishPipeDraft(merged,pipeDraft.startSnap,snap);
+    return;
+   }
+   const pPrev=merged[merged.length-2],pEnd=merged[merged.length-1];
+   const nextAxis=pPrev&&pEnd?(Math.abs(pEnd.x-pPrev.x)>=Math.abs(pEnd.y-pPrev.y)?'v':'h'):pipeDraft.lastAxis;
+   setPipeDraft({...pipeDraft,points:merged,lastAxis:nextAxis});
+   return;
+  }
+  setSelection([]);const rect=canvas.current!.getBoundingClientRect();
   banding.current={x:(e.clientX-rect.left)/zoom,y:(e.clientY-rect.top)/zoom};(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);}
- function bandMove(e:React.PointerEvent){const b=banding.current;if(!b)return;const rect=canvas.current!.getBoundingClientRect();
+ function bandMove(e:React.PointerEvent){
+  if(editor&&pipePen){
+   const {point,snap}=pipePointFromEvent(e);
+   setPipeHover({point,snap,shift:e.shiftKey});
+   return;
+  }
+  const b=banding.current;if(!b)return;const rect=canvas.current!.getBoundingClientRect();
   const x=(e.clientX-rect.left)/zoom,y=(e.clientY-rect.top)/zoom;
   setBand({x:Math.min(b.x,x),y:Math.min(b.y,y),w:Math.abs(x-b.x),h:Math.abs(y-b.y)});}
- function bandUp(){const b=band;banding.current=null;setBand(null);if(!b||b.w<6&&b.h<6)return;
+ function bandUp(){if(pipePen)return;const b=band;banding.current=null;setBand(null);if(!b||b.w<6&&b.h<6)return;
   setSelection(current.current.widgets.filter(w=>w.x<b.x+b.w&&w.x+w.width>b.x&&w.y<b.y+b.h&&w.y+w.height>b.y).map(w=>w.id));}
  /* G51: tutamaklar cerceveyi tutar, cizimi degil. Cerceve cizimden buyukse
   * konumlandirma gozle yapiliyor; bu eylem bos kenarlari kirpar, merkez yerinde kalir. */
@@ -558,6 +635,9 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   if(e.key==='Escape'&&shortcuts){setShortcuts(false);return;}
   if(!editor)return;
   const ctrl=e.ctrlKey||e.metaKey,step=e.shiftKey?10:1;
+  if(e.key==='Shift'&&pipePen&&pipeDraft){setPipeHover(h=>h?{...h,shift:true}:h);}
+  if(!ctrl&&!e.altKey&&(e.key==='p'||e.key==='P')){e.preventDefault();setPipePen(v=>{const next=!v;if(!next){setPipeDraft(null);setPipeHover(null);}return next;});return;}
+  if(e.key==='Enter'&&pipePen&&pipeDraft&&pipeDraft.points.length>=2){e.preventDefault();finishPipeDraft(pipeDraft.points,pipeDraft.startSnap,null);return;}
   if(e.key==='Delete'){e.preventDefault();remove();}
   if(ctrl&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo();}
   if(ctrl&&e.key==='d'){e.preventDefault();duplicate();}
@@ -565,15 +645,17 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   if(ctrl&&e.key==='c'){copy();}
   if(ctrl&&e.key==='x'){e.preventDefault();cut();}
   if(ctrl&&e.key==='v'){e.preventDefault();paste();}
-  if(e.key==='Escape'){setMenu(null);if(compact){setShowLibrary(false);setShowInspector(false);}}
+  if(e.key==='Escape'){if(resOpen){setResOpen(false);return;}if(pipeDraft){setPipeDraft(null);return;}if(pipePen){setPipePen(false);setPipeHover(null);return;}setMenu(null);if(compact){setShowLibrary(false);setShowInspector(false);}}
   if(!ctrl&&e.shiftKey&&(e.key==='F'||e.key==='f')){e.preventDefault();snapFrames();}
  if(!ctrl&&e.key==='['){e.preventDefault();rotateSelection(-(e.shiftKey?90:15));}
   if(!ctrl&&e.key===']'){e.preventDefault();rotateSelection(e.shiftKey?90:15);}
   if(!ctrl&&(e.key==='h'||e.key==='H')){e.preventDefault();mirror('x');}
   if(!ctrl&&(e.key==='v'||e.key==='V')){e.preventDefault();mirror('y');}
   if(e.key.startsWith('Arrow')){e.preventDefault();const dx=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0,dy=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;ctrl?resizeSelection(dx,dy):nudge(dx,dy);}
- }window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);});
- const shortcutList:[string,string][]=[['?','Bu yardım penceresi'],['Delete','Seçimi sil'],['Ctrl+Z / Ctrl+Shift+Z','Geri al / yinele'],['Ctrl+D','Çoğalt'],['Ctrl+A','Tümünü seç'],['Ctrl+C / X / V','Kopyala / kes / yapıştır'],['Ok tuşları','1 px taşı (Shift ile 10 px)'],['Ctrl+Ok','Boyutlandır'],['[ / ]','15° döndür (Shift ile 90°)'],['H / V','Yatay / dikey aynala'],['Ctrl / Shift + tekerlek','Yakınlaştır / uzaklaştır'],['Esc','Menüyü kapat']];
+ }
+ function keyUp(e:KeyboardEvent){if(e.key==='Shift'&&pipePen&&pipeDraft)setPipeHover(h=>h?{...h,shift:false}:h);}
+ window.addEventListener('keydown',key);window.addEventListener('keyup',keyUp);return()=>{window.removeEventListener('keydown',key);window.removeEventListener('keyup',keyUp);};});
+ const shortcutList:[string,string][]=[['?','Bu yardım penceresi'],['P','Dik açılı boru kalemi (Shift köşe yönü, Enter bitirir)'],['Delete','Seçimi sil'],['Ctrl+Z / Ctrl+Shift+Z','Geri al / yinele'],['Ctrl+D','Çoğalt'],['Ctrl+A','Tümünü seç'],['Ctrl+C / X / V','Kopyala / kes / yapıştır'],['Ok tuşları','1 px taşı (Shift ile 10 px)'],['Ctrl+Ok','Boyutlandır'],['[ / ]','15° döndür (Shift ile 90°)'],['H / V','Yatay / dikey aynala'],['Ctrl / Shift + tekerlek','Yakınlaştır / uzaklaştır'],['Esc','Menüyü veya aracı kapat']];
  const [numericEntry,setNumericEntry]=useState<Widget|null>(null),[info,setInfo]=useState<Widget|null>(null);
  /* G44: cek bas (momentary) ve darbe (pulse). Ikisi de true yazip ARDINDAN
   * false yazar. Kritik olan birakmadir: parmak kalkmasa, sekme kapansa,
@@ -791,6 +873,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   setLintModal({findings,reason:'',busy:false});
  }
  function openMenu(e:React.MouseEvent,w:Widget|null){if(!editor)return;e.preventDefault();e.stopPropagation();
+  if(pipePen&&pipeDraft){setPipeDraft(null);return;}
   if(w){const ids=w.groupId?current.current.widgets.filter(x=>x.groupId===w.groupId).map(x=>x.id):[w.id];
    if(!selection.includes(w.id))setSelection(ids);}
   else setSelection([]);
@@ -802,34 +885,72 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
   return()=>{window.removeEventListener('pointerdown',close);window.removeEventListener('resize',close);window.removeEventListener('blur',close);document.removeEventListener('scroll',close,true);};},[menu]);
  // Dar ekranda (<=1280 px) palet ve ozellikler tuvali ezmesin: kapali acilir, acilinca tuvalin ustune cekmece olarak gelir.
  useEffect(()=>{const mq=window.matchMedia(COMPACT_QUERY);const sync=()=>{setCompact(mq.matches);setShowLibrary(!mq.matches);setShowInspector(!mq.matches);};mq.addEventListener('change',sync);return()=>mq.removeEventListener('change',sync);},[]);
- return <div className={'studio '+(editor?'editing':'')+(compact?' compact':'')}><SymbolDefs/>
-  {editor&&showLibrary&&<aside className="palette">{compact&&<div className="drawer-bar"><span>Kütüphane</span><button className="tool" aria-label="Kütüphaneyi kapat" title="Kapat (Esc)" onClick={()=>setShowLibrary(false)}><X size={14}/></button></div>}<Library language={language} onAdd={t=>add(t)} onEquipment={id=>addEquipment(id)}/>
-<button className={'panel-title collapsible '+(equipmentOpen?'open':'')} onClick={()=>setEquipmentOpen(!equipmentOpen)} aria-expanded={equipmentOpen}><ChevronRight size={12}/><span>Ekipmanlar</span><small>{equipmentTypes.length}</small></button>{equipmentOpen&&<div className="layer-list">{equipmentTypes.length?equipmentTypes.map(t=><div key={t.id} className={'equipment-row'+(pendingTypeDelete===t.id?' confirm':'')}><button className="equipment-add" draggable title={(t.description||t.name)+' · tıklayın veya sürükleyin'} onDragStart={e=>e.dataTransfer.setData('scada-equipment-type',t.id)} onClick={()=>addEquipmentInstance(t.id)}><Blocks size={13}/><span>{t.name}</span></button><button className="tool equipment-delete" title={pendingTypeDelete===t.id?'Silmeyi onaylamak için tekrar tıklayın':'Ekipman tipini sil'} aria-label={pendingTypeDelete===t.id?t.name+' silmeyi onayla':t.name+' ekipman tipini sil'} onClick={()=>void deleteEquipmentType(t)}>{pendingTypeDelete===t.id?<span>Sil?</span>:<Trash2 size={12}/>}</button></div>):<p className="small muted" style={{padding:'6px 5px 10px'}}>Kayıtlı ekipman tipi yok. Nesneleri seçip "Ekipman tipi olarak kaydet" ile ekleyin.</p>}</div>}
-<button className={'panel-title collapsible '+(layersOpen?'open':'')} onClick={()=>setLayersOpen(!layersOpen)} aria-expanded={layersOpen}><ChevronRight size={12}/><span>Katmanlar</span><small>{screen.widgets.length}{hiddenLayers.length?' · '+hiddenLayers.length+' gizli':''}</small></button>{layersOpen&&<div className="layer-panel">
- <div className="layer-search"><Search size={12}/><input value={layerSearch} placeholder="Katman ara" aria-label="Katman ara" onChange={e=>setLayerSearch(e.target.value)}/>{layerSearch&&<button className="tool" aria-label="Aramayı temizle" onClick={()=>setLayerSearch('')}><X size={12}/></button>}{hiddenLayers.length>0&&<button className="tool" title="Gizlenen katmanları göster" aria-label="Gizlenen katmanları göster" onClick={()=>setHiddenLayers([])}><Eye size={12}/></button>}</div>
- <div className="layer-list">{layerGroups().map(g=>{
-  const ids=g.items.map(i=>i.id),collapsed=collapsedLayers.includes(g.key),allHidden=ids.every(id=>hiddenLayers.includes(id));
-  return <div key={g.key||'tekil'} className="layer-group">
-   {g.key&&<div className={'layer-group-head'+(collapsed?' collapsed':'')}>
-   <button className="layer-group-name" aria-expanded={!collapsed} onClick={()=>setCollapsedLayers(c=>c.includes(g.key)?c.filter(x=>x!==g.key):[...c,g.key])}>{collapsed?<Folder size={12}/>:<FolderOpen size={12}/>}<span>{g.name}</span><small>{g.items.length}</small></button>
-   <button className="tool" title="Grubu seç" aria-label={g.name+' grubunu seç'} onClick={()=>setSelection(ids)}><CheckSquare size={11}/></button>
-    <button className="tool" title="Gruba odaklan" aria-label={g.name+' grubuna odaklan'} onClick={()=>{setSelection(ids);zoomToSelection(ids)}}><Maximize size={11}/></button>
-    <button className="tool" title={allHidden?'Tasarımda göster':'Tasarımda gizle'} aria-label={allHidden?'Tasarımda göster':'Tasarımda gizle'} onClick={()=>toggleHidden(ids)}>{allHidden?<EyeOff size={11}/>:<Eye size={11}/>}</button>
-    <button className="tool" title="Kilidi değiştir" aria-label="Kilidi değiştir" onClick={()=>lockLayers(ids)}>{g.items.every(i=>i.locked)?<Lock size={11}/>:<Unlock size={11}/>}</button>
-   </div>}
-   {!collapsed&&g.items.map(w=><div key={w.id} className={'layer-row'+(selection.includes(w.id)?' selected':'')+(hiddenLayers.includes(w.id)?' hidden-layer':'')} draggable
-     onDragStart={()=>{layerDrag.current=w.id;}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();moveLayer(layerDrag.current,w.id);layerDrag.current='';}}>
-    <span className="layer-grip" aria-hidden="true"><GripVertical size={11}/></span>
-    <button className="layer-name" onClick={e=>pickLayer(w.id,e)} title={(w.label||labels[w.type])+' · sürükleyerek katman sırasını değiştirin'}><Layers size={13}/><span>{w.label||labels[w.type]}</span></button>
-    <button className="tool" title="Nesneye odaklan" aria-label={(w.label||labels[w.type])+' nesnesine odaklan'} onClick={()=>{setSelection([w.id]);zoomToSelection([w.id])}}><Maximize size={11}/></button>
-    <button className="tool" title={hiddenLayers.includes(w.id)?'Tasarımda göster':'Tasarımda gizle'} aria-label={hiddenLayers.includes(w.id)?'Tasarımda göster':'Tasarımda gizle'} onClick={()=>toggleHidden([w.id])}>{hiddenLayers.includes(w.id)?<EyeOff size={11}/>:<Eye size={11}/>}</button>
-    <button className="tool" title={w.locked?'Kilidi aç':'Kilitle'} aria-label={w.locked?'Kilidi aç':'Kilitle'} onClick={()=>lockLayers([w.id])}>{w.locked?<Lock size={11}/>:<Unlock size={11}/>}</button>
-   </div>)}
-  </div>;})}
-  {!layerGroups().length&&<p className="small muted" style={{padding:'6px 5px 10px'}}>{layerSearch?'Aramaya uyan katman yok.':'Bu ekranda nesne yok.'}</p>}
- </div></div>}</aside>}
+ return <div className={'studio '+(editor?'editing':preview?'previewing':'')+(compact?' compact':'')+(editor&&pipePen?' pipe-pen-mode':'')}><SymbolDefs/>
+  {editor&&showLibrary&&<aside className="palette">{compact&&<div className="drawer-bar"><span>Stüdyo paneli</span><button className="tool" aria-label="Paneli kapat" title="Kapat (Esc)" onClick={()=>setShowLibrary(false)}><X size={14}/></button></div>}
+  <div className="palette-tabs" role="tablist" aria-label="Sol panel" onKeyDown={e=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+   e.preventDefault();
+   const order=['library','layers','templates'] as const;
+   const idx=order.indexOf(paletteTab);
+   const nextIdx=e.key==='Home'?0:e.key==='End'?order.length-1:(idx+(e.key==='ArrowRight'?1:-1)+order.length)%order.length;
+   setPaletteTab(order[nextIdx]);
+   e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[nextIdx]?.focus();
+  }}>
+   <button type="button" role="tab" tabIndex={paletteTab==='library'?0:-1} aria-selected={paletteTab==='library'} onClick={()=>setPaletteTab('library')}>Kütüphane</button>
+   <button type="button" role="tab" tabIndex={paletteTab==='layers'?0:-1} aria-selected={paletteTab==='layers'} onClick={()=>setPaletteTab('layers')}>Katmanlar<small>{screen.widgets.length}</small></button>
+   <button type="button" role="tab" tabIndex={paletteTab==='templates'?0:-1} aria-selected={paletteTab==='templates'} onClick={()=>setPaletteTab('templates')}>Şablonlar<small>{screenTemplates.length+BACKDROP_VARIANTS.length+equipmentTemplates.length+equipmentTypes.length}</small></button>
+  </div>
+  {paletteTab==='library'&&<Library language={language} symbolStyle={screen.symbolStyle} hideGroupsTab onAdd={t=>add(t)} onEquipment={id=>addEquipment(id)}/>}
+  {paletteTab==='layers'&&<div className="layer-panel">
+   <div className="layer-search"><Search size={12}/><input value={layerSearch} placeholder="Katman ara" aria-label="Katman ara" onChange={e=>setLayerSearch(e.target.value)}/>{layerSearch&&<button className="tool" aria-label="Aramayı temizle" onClick={()=>setLayerSearch('')}><X size={12}/></button>}{hiddenLayers.length>0&&<button className="tool" title="Gizlenen katmanları göster" aria-label="Gizlenen katmanları göster" onClick={()=>setHiddenLayers([])}><Eye size={12}/></button>}</div>
+   <div className="layer-list">{layerGroups().map(g=>{
+    const ids=g.items.map(i=>i.id),collapsed=collapsedLayers.includes(g.key),allHidden=ids.every(id=>hiddenLayers.includes(id));
+    return <div key={g.key||'tekil'} className="layer-group">
+     {g.key&&<div className={'layer-group-head'+(collapsed?' collapsed':'')}>
+     <button className="layer-group-name" aria-expanded={!collapsed} onClick={()=>setCollapsedLayers(c=>c.includes(g.key)?c.filter(x=>x!==g.key):[...c,g.key])}>{collapsed?<Folder size={12}/>:<FolderOpen size={12}/>}<span>{g.name}</span><small>{g.items.length}</small></button>
+     <button className="tool" title="Grubu seç" aria-label={g.name+' grubunu seç'} onClick={()=>setSelection(ids)}><CheckSquare size={11}/></button>
+      <button className="tool" title="Gruba odaklan" aria-label={g.name+' grubuna odaklan'} onClick={()=>{setSelection(ids);zoomToSelection(ids)}}><Maximize size={11}/></button>
+      <button className="tool" title={allHidden?'Tasarımda göster':'Tasarımda gizle'} aria-label={allHidden?'Tasarımda göster':'Tasarımda gizle'} onClick={()=>toggleHidden(ids)}>{allHidden?<EyeOff size={11}/>:<Eye size={11}/>}</button>
+      <button className="tool" title="Kilidi değiştir" aria-label="Kilidi değiştir" onClick={()=>lockLayers(ids)}>{g.items.every(i=>i.locked)?<Lock size={11}/>:<Unlock size={11}/>}</button>
+     </div>}
+     {!collapsed&&g.items.map(w=>{const bind=widgetBindingStatus(w,config,screenIdSet);return <div key={w.id} className={'layer-row'+(selection.includes(w.id)?' selected':'')+(hiddenLayers.includes(w.id)?' hidden-layer':'')} draggable
+       onDragStart={()=>{layerDrag.current=w.id;}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();moveLayer(layerDrag.current,w.id);layerDrag.current='';}}>
+      <span className="layer-grip" aria-hidden="true"><GripVertical size={11}/></span>
+      <span className={'layer-bind-dot '+bind.state} title={bind.label} aria-label={bind.label}/>
+      <button className="layer-name" onClick={e=>pickLayer(w.id,e)} title={(w.label||labels[w.type])+' · '+bind.label+' · sürükleyerek katman sırasını değiştirin'}><span>{w.label||labels[w.type]}</span></button>
+      <button className="tool" title="Nesneye odaklan" aria-label={(w.label||labels[w.type])+' nesnesine odaklan'} onClick={()=>{setSelection([w.id]);zoomToSelection([w.id])}}><Maximize size={11}/></button>
+      <button className="tool" title={hiddenLayers.includes(w.id)?'Tasarımda göster':'Tasarımda gizle'} aria-label={hiddenLayers.includes(w.id)?'Tasarımda göster':'Tasarımda gizle'} onClick={()=>toggleHidden([w.id])}>{hiddenLayers.includes(w.id)?<EyeOff size={11}/>:<Eye size={11}/>}</button>
+      <button className="tool" title={w.locked?'Kilidi aç':'Kilitle'} aria-label={w.locked?'Kilidi aç':'Kilitle'} onClick={()=>lockLayers([w.id])}>{w.locked?<Lock size={11}/>:<Unlock size={11}/>}</button>
+     </div>;})}
+    </div>;})}
+    {!layerGroups().length&&<p className="small muted" style={{padding:'6px 5px 10px'}}>{layerSearch?'Aramaya uyan katman yok.':'Bu ekranda nesne yok.'}</p>}
+   </div></div>}
+  {paletteTab==='templates'&&<div className="templates-panel">
+   <div className="layer-search"><Search size={12}/><input value={templateSearch} placeholder="Şablon veya ekipman ara" aria-label="Şablon ara" onChange={e=>setTemplateSearch(e.target.value)}/>{templateSearch&&<button className="tool" aria-label="Aramayı temizle" onClick={()=>setTemplateSearch('')}><X size={12}/></button>}</div>
+   <button type="button" className="btn small wide" disabled={!selection.length} title={selection.length?'Seçili nesnelerden ekipman tipi oluştur':'Önce tuvalden nesne seçin'} onClick={openTypeBuilder}><Blocks size={13}/>Seçimi ekipman tipi olarak kaydet</button>
+   <div className="templates-scroll">
+    <div className="templates-section-head"><span>Hazır ekran şablonları</span><small>{screenTemplates.length}</small></div>
+    {screenTemplates.filter(t=>(t.name+' '+t.category+' '+t.description).toLocaleLowerCase('tr').includes(templateSearch.trim().toLocaleLowerCase('tr'))).map(t=><button key={t.id} type="button" className="screen-template-card" onClick={()=>setPendingTemplate(t)}>
+     <div className="screen-template-preview" aria-hidden="true">{renderBackdropSvg(t.backdropVariant,'st-'+t.id)}</div>
+     <span><strong>{t.name}</strong><small>{t.category} · {t.width}×{t.height}</small></span>
+    </button>)}
+    <div className="templates-section-head"><span>Tesis altlıkları (SVG)</span><small>{BACKDROP_VARIANTS.length}</small></div>
+    <div className="backdrop-pick-grid">
+     {BACKDROP_VARIANTS.filter(b=>(b.label+' '+b.labelEn).toLocaleLowerCase('tr').includes(templateSearch.trim().toLocaleLowerCase('tr'))).map(b=><button key={b.key} type="button" className="backdrop-pick-tile" draggable title={b.label+' altlığını en alt katmana ekle'} onDragStart={e=>e.dataTransfer.setData('scada-backdrop',b.key)} onClick={()=>addBackdrop(b.key)}>
+      <div className="backdrop-pick-preview" aria-hidden="true">{renderBackdropSvg(b.key,'bp-'+b.key)}</div>
+      <span>{b.label}</span>
+     </button>)}
+    </div>
+    <div className="templates-section-head"><span>Hazır gruplar</span><small>{equipmentTemplates.length}</small></div>
+    {equipmentTemplates.filter(t=>(t.name+' '+t.description).toLocaleLowerCase('tr').includes(templateSearch.trim().toLocaleLowerCase('tr'))).map(t=><button key={t.id} type="button" className="equipment-template" draggable onDragStart={e=>e.dataTransfer.setData('scada-equipment',t.id)} onClick={()=>addEquipment(t.id)}><div><Symbol w={{...newWidget(t.symbol),label:''}} quality="good" value={false}/></div><span><strong>{t.name}</strong><small>{t.description}</small></span><Plus size={14}/></button>)}
+    <div className="templates-section-head"><span>Kayıtlı ekipman tipleri</span><small>{equipmentTypes.length}</small></div>
+    {(()=>{const q=templateSearch.trim().toLocaleLowerCase('tr'),list=equipmentTypes.filter(t=>!q||(t.name+' '+(t.description||'')).toLocaleLowerCase('tr').includes(q));
+     return list.length?list.map(t=><div key={t.id} className={'equipment-row'+(pendingTypeDelete===t.id?' confirm':'')}><button type="button" className="equipment-add" draggable title={(t.description||t.name)+' · tıklayın veya sürükleyin'} onDragStart={e=>e.dataTransfer.setData('scada-equipment-type',t.id)} onClick={()=>addEquipmentInstance(t.id)}><Blocks size={13}/><span>{t.name}</span></button><button type="button" className="tool equipment-delete" title={pendingTypeDelete===t.id?'Silmeyi onaylamak için tekrar tıklayın':'Ekipman tipini sil'} aria-label={pendingTypeDelete===t.id?t.name+' silmeyi onayla':t.name+' ekipman tipini sil'} onClick={()=>void deleteEquipmentType(t)}>{pendingTypeDelete===t.id?<span>Sil?</span>:<Trash2 size={12}/>}</button></div>):<p className="small muted" style={{padding:'6px 4px 10px'}}>{templateSearch?'Aramaya uyan şablon yok.':'Kayıtlı ekipman tipi yok. Nesneleri seçip yukarıdan tip kaydedin.'}</p>;})()}
+   </div>
+  </div>}
+  </aside>}
   <section className="workspace">
-   <div className="canvas-toolbar"><div className="toolbar-group"><span className="screen-name">{screen.name}</span><span className="muted small">{editor?'Taslak v'+version:preview?'Simülasyon':'Yayın v'+view.publishedVersion}</span></div><div className="toolbar-group">{editor?<><Tool title="Kütüphaneyi aç / kapat" onClick={()=>setShowLibrary(!showLibrary)} active={showLibrary}><PanelLeftOpen/></Tool><Tool title="Özellikleri aç / kapat" onClick={()=>setShowInspector(!showInspector)} active={showInspector}><Layers/></Tool><Tool title="Odak modu" onClick={()=>setFocus(!focus)} active={focus}><Maximize/></Tool><span className="divider"/><Tool title="Geri al" onClick={undo} disabled={!history.length}><Undo2/></Tool><Tool title="Yinele" onClick={redo} disabled={!future.length}><Redo2/></Tool><span className="divider"/><Tool title="Kopyala" onClick={duplicate} disabled={!selection.length}><Copy/></Tool><Tool title="Sil" onClick={remove} disabled={!selection.length}><Trash2/></Tool><Tool title="Seçimi ekipman tipi olarak kaydet" onClick={openTypeBuilder} disabled={!selection.length}><Blocks/></Tool><Tool title="Ekranı SVG olarak indir" onClick={downloadSvg}><Download/></Tool><Tool title="Izgara" onClick={()=>setGrid(!grid)} active={grid}><Grid2X2/></Tool><Tool title="Uç uca eklerken boru kalınlığına göre boyutlandır" onClick={()=>setAutoFit(!autoFit)} active={autoFit}><Ruler/></Tool><span className="save-state">{saving?'Kaydediliyor…':saveText}</span><button className="btn small" onClick={()=>void save()} disabled={saving||!dirty}><Save size={14}/>Kaydet</button>{user.role==='admin'&&<button className="btn primary small" onClick={()=>void publish()}><Upload size={14}/>Yayınla</button>}</>:<><Tool title="Uzaklaştır" onClick={()=>setZoom(Math.max(.25,zoom-.1))}><ZoomOut/></Tool><span className="small">{Math.round(zoom*100)}%</span><Tool title="Yakınlaştır" onClick={()=>setZoom(Math.min(2,zoom+.1))}><ZoomIn/></Tool><Tool title="Tam ekran" onClick={()=>void enterFullscreen()}><Maximize/></Tool></>}</div></div>
+   <div className="canvas-toolbar"><div className="toolbar-group">{(editor||preview)&&canEdit&&onModeChange&&<><div className="mode-switch inline" role="group" aria-label="Çalışma modu"><button type="button" onClick={()=>onModeChange('runtime')}><Monitor size={14}/>Canlı</button><button type="button" className={editor?'active':''} onClick={()=>onModeChange('editor')}><PenTool size={14}/>Tasarım</button><button type="button" className={preview?'active':''} onClick={()=>onModeChange('preview')}><Eye size={14}/>Önizleme</button></div><span className="divider"/></>}<span className="screen-name">{screen.name}</span><span className="muted small">{editor?'Taslak v'+version:preview?'Simülasyon':'Yayın v'+view.publishedVersion}</span></div><div className="toolbar-group">{editor?<><Tool title="Seçim aracı (Esc)" onClick={()=>{setPipePen(false);setPipeDraft(null);setPipeHover(null);}} active={!pipePen} pressed={!pipePen}><MousePointer2/></Tool><Tool title="Dik açılı boru kalemi (P)" onClick={()=>{setPipePen(v=>{const next=!v;if(!next){setPipeDraft(null);setPipeHover(null);}return next;});}} active={pipePen} pressed={pipePen}><PipePenIcon/></Tool><span className="divider"/><Tool title="Sol paneli aç / kapat" onClick={()=>setShowLibrary(!showLibrary)} active={showLibrary} pressed={showLibrary}><PanelLeftOpen/></Tool><Tool title="Özellikleri aç / kapat" onClick={()=>setShowInspector(!showInspector)} active={showInspector} pressed={showInspector}><Layers/></Tool><Tool title="Odak modu" onClick={()=>setFocus(!focus)} active={focus} pressed={focus}><Maximize/></Tool><span className="divider"/><Tool title="Geri al" onClick={undo} disabled={!history.length}><Undo2/></Tool><Tool title="Yinele" onClick={redo} disabled={!future.length}><Redo2/></Tool><span className="divider"/><Tool title="Kopyala" onClick={duplicate} disabled={!selection.length}><Copy/></Tool><Tool title="Sil" onClick={remove} disabled={!selection.length}><Trash2/></Tool><Tool title="Seçimi ekipman tipi olarak kaydet" onClick={openTypeBuilder} disabled={!selection.length}><Blocks/></Tool><Tool title="Ekranı SVG olarak indir" onClick={downloadSvg}><Download/></Tool><Tool title="Izgara" onClick={()=>setGrid(!grid)} active={grid} pressed={grid}><Grid2X2/></Tool><Tool title="Uç uca eklerken boru kalınlığına göre boyutlandır" onClick={()=>setAutoFit(!autoFit)} active={autoFit} pressed={autoFit}><Ruler/></Tool><span className="save-state">{saving?'Kaydediliyor…':saveText}</span><button type="button" className="btn small" onClick={()=>void save()} disabled={saving||!dirty}><Save size={14}/>Kaydet</button>{user.role==='admin'&&<button type="button" className="btn primary small" onClick={()=>void publish()}><Upload size={14}/>Yayınla</button>}</>:<><Tool title="Uzaklaştır" onClick={()=>setZoom(Math.max(.25,zoom-.1))}><ZoomOut/></Tool><span className="small">{Math.round(zoom*100)}%</span><Tool title="Yakınlaştır" onClick={()=>setZoom(Math.min(2,zoom+.1))}><ZoomIn/></Tool><Tool title="Tam ekran" onClick={()=>void enterFullscreen()}><Maximize/></Tool></>}</div></div>
    {preview&&<><div className="preview-banner"><span>ÖNİZLEME · Saha komutu gönderilmez.</span><div><button onClick={()=>setSimPanel(!simPanel)}>{simPanel?'Senaryoları kapat':'Arıza senaryoları'}</button><button onClick={()=>{const on=!simOn;setSimOn(on);setSimulation(Object.fromEntries(config.tags.map(t=>[t.id,t.dataType==='bool'?on:on?75:0])));}}>{simOn?'Simülasyonu durdur':'Çalışma durumunu göster'}</button></div></div>{simPanel&&<div className="simulation-panel"><div><strong>Etiket simülasyonu</strong><span className="small muted">Değer, geri bildirim ve kalite birbirinden bağımsızdır; fiziksel sürücüye yazılmaz.</span></div><div className="simulation-actions"><button className="btn small" onClick={()=>faultAll('good')}>Tümü güncel</button><button className="btn small" onClick={()=>faultAll('stale')}>Tümü bayat</button><button className="btn small" onClick={()=>faultAll('bad')}>Protokol hatası</button></div>{screenTags().map(t=>{const value=simulation[t.id]??(t.dataType==='bool'?false:0),quality=simQuality[t.id]||'good';return <div className="simulation-row" key={t.id}><strong>{t.code}</strong>{t.dataType==='bool'?<select aria-label={t.code+' simüle değer'} value={String(value)} onChange={e=>setSimValue(t.id,e.target.value==='true')}><option value="true">Açık</option><option value="false">Kapalı</option></select>:<input type="number" aria-label={t.code+' simüle değer'} value={value as number} onChange={e=>setSimValue(t.id,Number(e.target.value)||0)}/>}<select aria-label={t.code+' veri kalitesi'} value={quality} onChange={e=>setSimQualityFor(t.id,e.target.value as typeof quality)}><option value="good">Güncel</option><option value="stale">Bayat</option><option value="bad">Protokol hatası</option><option value="unknown">Bilinmiyor</option></select></div>})}<div className="simulation-save"><input value={scenarioName} onChange={e=>setScenarioName(e.target.value)} placeholder="Senaryo adı"/><button className="btn small primary" onClick={()=>void saveScenario()}>Senaryoyu kaydet</button>{scenarios.map(s=><button className="btn small" key={s.name} onClick={()=>applyScenario(s.name)}>{s.name}</button>)}</div></div>}</>}
    {newPublication&&<div className="warning publication-bar" role="status">
     <span>Bu ekranın yeni bir yayını var (v{live_record.publishedVersion}{config.revision!==snapshot.configRevision?' · yeni yapılandırma v'+config.revision:''}). Gördüğünüz belge v{snapshot.publishedVersion}; komutlar da bu belgeye göre gönderilir.</span>
@@ -844,8 +965,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
      <button className="btn small" onClick={()=>void resolveConflict('theirs')}>Sunucudaki taslağı al</button>
      <button className="btn primary small" onClick={()=>void resolveConflict('mine')} disabled={saving}>Benim taslağımı kaydet</button>
     </div></div>;})()}
-   {editor&&<div className="resolution-toolbar"><label>Hedef çözünürlük <select aria-label="Hedef ekran çözünürlüğü" value={[ '1024x768','1280x720','1366x768','1920x1080','1920x1200','2560x1440','3840x2160','1080x1920'].includes(`${screen.width}x${screen.height}`)?`${screen.width}x${screen.height}`:''} onChange={e=>{if(!e.target.value)return;const [width,height]=e.target.value.split('x').map(Number);editorFitted.current=false;change({...screen,width,height});}}><option value="">Özel · {screen.width} × {screen.height}</option>{['1024x768','1280x720','1366x768','1920x1080','1920x1200','2560x1440','3840x2160','1080x1920'].map(size=><option key={size} value={size}>{size.replace('x',' × ')}</option>)}</select></label><button className="btn small" onClick={()=>{editorFitted.current=false;change({...screen,width:Math.max(400,Math.min(4000,window.screen.width)),height:Math.max(300,Math.min(3000,window.screen.height))});}}>Bu ekranı kullan · {window.screen.width} × {window.screen.height}</button><span className="small muted">Tuval boyutu · Kaydet ve yayınla</span></div>}
-   <div className="canvas-viewport" ref={viewport} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const equipmentType=e.dataTransfer.getData('scada-equipment-type');if(editor&&equipmentType){const rect=canvas.current!.getBoundingClientRect();addEquipmentInstance(equipmentType,Math.max(0,Math.round((e.clientX-rect.left)/zoom)),Math.max(0,Math.round((e.clientY-rect.top)/zoom)));return;}const equipment=e.dataTransfer.getData('scada-equipment');if(editor&&equipment){const rect=canvas.current!.getBoundingClientRect();addEquipment(equipment,Math.max(0,Math.round((e.clientX-rect.left)/zoom)),Math.max(0,Math.round((e.clientY-rect.top)/zoom)));return;}const t=e.dataTransfer.getData('scada-symbol') as Widget['type'];if(editor&&symbolTypes.includes(t)){const rect=canvas.current!.getBoundingClientRect();add(t,Math.max(0,Math.round((e.clientX-rect.left)/zoom/10)*10),Math.max(0,Math.round((e.clientY-rect.top)/zoom/10)*10));}}}>
+   <div className="canvas-viewport" ref={viewport} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const backdropKey=e.dataTransfer.getData('scada-backdrop');if(editor&&backdropKey){const rect=canvas.current!.getBoundingClientRect();addBackdrop(backdropKey,Math.max(0,Math.round((e.clientX-rect.left)/zoom/10)*10),Math.max(0,Math.round((e.clientY-rect.top)/zoom/10)*10));return;}const equipmentType=e.dataTransfer.getData('scada-equipment-type');if(editor&&equipmentType){const rect=canvas.current!.getBoundingClientRect();addEquipmentInstance(equipmentType,Math.max(0,Math.round((e.clientX-rect.left)/zoom)),Math.max(0,Math.round((e.clientY-rect.top)/zoom)));return;}const equipment=e.dataTransfer.getData('scada-equipment');if(editor&&equipment){const rect=canvas.current!.getBoundingClientRect();addEquipment(equipment,Math.max(0,Math.round((e.clientX-rect.left)/zoom)),Math.max(0,Math.round((e.clientY-rect.top)/zoom)));return;}const t=e.dataTransfer.getData('scada-symbol') as Widget['type'];if(editor&&symbolTypes.includes(t)){const rect=canvas.current!.getBoundingClientRect();add(t,Math.max(0,Math.round((e.clientX-rect.left)/zoom/10)*10),Math.max(0,Math.round((e.clientY-rect.top)/zoom/10)*10));}}}>
     {full&&<><button className="fs-handle" aria-label="Ekran listesini aç" title="Ekranlar" onClick={()=>setDrawer(true)}><PanelLeftOpen size={18}/></button>
      <button className="fs-exit" aria-label="Tam ekrandan çık" title="Tam ekrandan çık (Esc)" onClick={exitFullscreen}><Minimize2 size={17}/></button>
      <div className="fs-scale-controls" role="group" aria-label="Tam ekran ölçeği"><button className="btn" aria-label="Uzaklaştır" onClick={()=>changeFullScale(Math.max(.2,zoom-.1))}>−</button><label>Ölçek <input aria-label="Tam ekran ölçeği" type="range" min="20" max="400" step="5" value={Math.round(zoom*100)} onChange={e=>changeFullScale(Number(e.target.value)/100)}/></label><output>{Math.round(zoom*100)}%</output><button className="btn" aria-label="Yakınlaştır" onClick={()=>changeFullScale(Math.min(4,zoom+.1))}>+</button><button className="btn" onClick={()=>changeFullScale(1)}>%100</button><button className="btn" aria-pressed={fullScale===null} onClick={()=>changeFullScale(null)}>Sığdır</button></div>
@@ -858,7 +978,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
         {r.publishedVersion===0&&<small>Taslak</small>}</button>)}</div>
       <button className="fs-drawer-exit" onClick={exitFullscreen}><Minimize2 size={15}/>Tam ekrandan çık</button>
      </aside></>}
-    <div className="canvas-scale" style={{width:screen.width*zoom,height:screen.height*zoom}}><div ref={canvas} data-theme={surfaceTheme(screen.background,theme)} className={'canvas '+(editor&&grid?'grid':'')+(screen.symbolStyle==='detailed'?' sym-detailed':'')} style={{width:screen.width,height:screen.height,transform:`scale(${zoom})`,backgroundColor:screen.background||undefined,backgroundSize:`${screen.gridSize}px ${screen.gridSize}px`}} onPointerDown={bandDown} onPointerMove={bandMove} onPointerUp={bandUp} onPointerCancel={bandUp} onContextMenu={e=>openMenu(e,null)}>
+    <div className="canvas-scale" style={{width:screen.width*zoom,height:screen.height*zoom}}><div ref={canvas} data-theme={surfaceTheme(screen.background,theme)} className={'canvas '+(editor&&grid?'grid ':'')+(editor&&pipePen?'pipe-pen-active ':'')+(screen.symbolStyle==='detailed'?'sym-detailed':'')} style={{width:screen.width,height:screen.height,transform:`scale(${zoom})`,backgroundColor:screen.background||undefined,backgroundSize:`${screen.gridSize}px ${screen.gridSize}px`}} onPointerDown={bandDown} onPointerMove={bandMove} onPointerUp={bandUp} onPointerCancel={bandUp} onDoubleClick={()=>{if(editor&&pipePen&&pipeDraft&&pipeDraft.points.length>=2)finishPipeDraft(pipeDraft.points,pipeDraft.startSnap,null);}} onContextMenu={e=>openMenu(e,null)}>
      {(!view.published&&!editor&&!preview)?null:screen.widgets.filter(w=>!(editor&&hiddenLayers.includes(w.id))).map(w=>{
       const sample=live.samples[w.tagId],numericTag=config.tags.find(t=>t.id===w.tagId)?.dataType!=='bool';const value=preview?(simulation[w.tagId]??(numericTag?0:false)):editor?(numericTag?0:false):sample?.value;
       const rawQuality=preview?(simQuality[w.tagId]||'good'):editor?'good':sample?.quality||'unknown';
@@ -892,18 +1012,59 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
      {editor&&selection.length>1&&(()=>{const box=selectionBox(screen.widgets.filter(w=>selectedSet.has(w.id)));if(!box)return null;
       return <div className="selection-frame" style={{left:box.x,top:box.y,width:box.width,height:box.height}} onPointerMove={move} onPointerUp={endDrag} onPointerCancel={endDrag}>
        {handleDirections.map(dir=><span key={dir} className={'resize-handle '+dir} title={'Seçimi '+handleLabels[dir].toLocaleLowerCase('tr')} onPointerDown={e=>groupDown(e,dir)}/>)}</div>;})()}
-     {editor&&ports&&screen.widgets.filter(w=>hasPorts(w.type)).flatMap(w=>portsOf(w).map((p,i)=><span key={w.id+'-p'+i} className="port-dot" style={{left:p.x,top:p.y}}/>))}
+     {editor&&(ports||pipePen)&&screen.widgets.filter(w=>hasPorts(w.type)&&!hiddenLayers.includes(w.id)).flatMap(w=>portsOf(w).map((p,i)=><span key={w.id+'-p'+i} className="port-dot" style={{left:p.x,top:p.y}}/>))}
      {editor&&snapped&&<span className="port-dot snapped" style={{left:snapped.x,top:snapped.y}}/>}
+     {editor&&pipePen&&pipeHover?.snap&&<span className="port-dot snapped" style={{left:pipeHover.snap.x,top:pipeHover.snap.y}}/>}
+     {editor&&pipePen&&pipeDraft&&(()=>{const previewPts=pipeHover?[...pipeDraft.points,...routeOrthogonalLeg(pipeDraft.points[pipeDraft.points.length-1],pipeHover.point,pipeDraft.lastAxis,pipeHover.shift).slice(1)]:pipeDraft.points;
+      const dPath='M'+previewPts.map(p=>`${p.x} ${p.y}`).join(' L');
+      return <svg className="pipe-pen-preview" width={screen.width} height={screen.height} viewBox={`0 0 ${screen.width} ${screen.height}`} aria-hidden="true">
+       <path className="pipe-pen-casing" d={dPath} fill="none"/>
+       <path className="pipe-pen-guide" d={dPath} fill="none"/>
+       {previewPts.map((pt,idx)=><circle key={idx} cx={pt.x} cy={pt.y} r={idx===0?5:3.5} className={idx===0?'pipe-pen-anchor':'pipe-pen-vertex'}/>)}
+      </svg>;})()}
      {editor&&guides.x.map(x=><div key={'gx'+x} className="guide vertical" style={{left:x}}/>)}
      {editor&&guides.y.map(y=><div key={'gy'+y} className="guide horizontal" style={{top:y}}/>)}
      {editor&&band&&<div className="marquee" style={{left:band.x,top:band.y,width:band.w,height:band.h}}/>}
-     {editor&&screen.widgets.length===0&&<div className="empty-canvas"><MousePointer2 size={34}/><h3>İlk sembolünüzü yerleştirin</h3><p>Kütüphaneden sürükleyin veya bir sembole tıklayın.</p></div>}
-    </div></div>
+     {editor&&screen.widgets.length===0&&!pipePen&&<div className="empty-canvas"><MousePointer2 size={34}/><h3>İlk sembolünüzü yerleştirin</h3><p>Kütüphaneden sürükleyin veya bir sembole tıklayın.</p></div>}
+    </div>
+    {editor&&selection.length>1&&!pipePen&&!isDragging&&(()=>{const box=selectionBox(screen.widgets.filter(w=>selectedSet.has(w.id)));if(!box)return null;
+     const half=Math.min(216,Math.max(0,(screen.width*zoom)/2));
+     const left=Math.max(half,Math.min(Math.max(half,screen.width*zoom-half),(box.x+box.width/2)*zoom));
+     const top=box.y*zoom>=48?box.y*zoom-42:(box.y+box.height)*zoom+10;
+     const allGrouped=picked.length>0&&!!picked[0].groupId&&picked.every(w=>w.groupId===picked[0].groupId);
+     return <div className="floating-align-bar" role="toolbar" aria-label="Çoklu seçim hizalama araçları" style={{left,top}} onPointerDown={e=>e.stopPropagation()}>
+      <Tool title="Sola hizala" onClick={()=>arrange('left')}><AlignLeft/></Tool>
+      <Tool title="Yatayda ortala" onClick={()=>arrange('center')}><AlignCenter/></Tool>
+      <Tool title="Sağa hizala" onClick={()=>arrange('right')}><AlignRight/></Tool>
+      <span className="divider"/>
+      <Tool title="Üste hizala" onClick={()=>arrange('top')}><AlignVerticalJustifyStart/></Tool>
+      <Tool title="Dikeyde ortala" onClick={()=>arrange('middle')}><AlignVerticalJustifyCenter/></Tool>
+      <Tool title="Alta hizala" onClick={()=>arrange('bottom')}><AlignVerticalJustifyEnd/></Tool>
+      <span className="divider"/>
+      <button type="button" className="tool" title="Yatay eşit aralık" aria-label="Yatay eşit aralık" disabled={selection.length<3} onClick={()=>arrange('space')}>↔</button>
+      <button type="button" className="tool" title="Dikey eşit aralık" aria-label="Dikey eşit aralık" disabled={selection.length<3} onClick={()=>arrange('space-v')}>↕</button>
+      <span className="divider"/>
+      <button type="button" className="tool text-tool" title="Aynı genişlik" aria-label="Aynı genişlik" onClick={()=>change({...current.current,widgets:matchSize(current.current.widgets,selection,'width')})}>G=</button>
+      <button type="button" className="tool text-tool" title="Aynı yükseklik" aria-label="Aynı yükseklik" onClick={()=>change({...current.current,widgets:matchSize(current.current.widgets,selection,'height')})}>Y=</button>
+      <span className="divider"/>
+      <Tool title={allGrouped?'Grubu çöz':'Grupla'} onClick={()=>group(allGrouped)}><>{allGrouped?<Ungroup/>:<Group/>}</></Tool>
+      <Tool title="Çoğalt (Ctrl+D)" onClick={duplicate}><Copy/></Tool>
+      <Tool title="Sil (Delete)" onClick={remove}><Trash2/></Tool>
+     </div>;})()}
+    </div>
    </div>
-   <div className="canvas-footer"><span>{editor?`${selection.length} nesne seçili · ${screen.widgets.length} nesne · uçlar otomatik birleşir${autoFit?' ve kalınlığa göre boyutlanır':''} (Alt ile kapat)`:'Canlı değerler · Gönderilen komutlar geri okuma ile doğrulanır'}</span><div>{editor&&<><button onClick={()=>setZoom(Math.max(.25,zoom-.1))}>−</button><span>{Math.round(zoom*100)}%</span><button onClick={()=>setZoom(Math.min(2,zoom+.1))}>+</button><button onClick={()=>setZoom(Math.min(1,(viewport.current!.clientWidth-48)/screen.width))}>Sığdır</button></>}<span>{screen.width} × {screen.height}</span></div></div>
+   <div className="canvas-footer"><span>{editor?(pipePen?'Boru kalemi · Port veya tuvale tıklayın · Shift köşe yönü · Enter/çift tık bitir · Esc iptal':`${selection.length} nesne seçili · ${screen.widgets.length} nesne · uçlar otomatik birleşir${autoFit?' ve kalınlığa göre boyutlanır':''} (Alt ile kapat)`):'Canlı değerler · Gönderilen komutlar geri okuma ile doğrulanır'}</span><div>{editor&&<><button type="button" aria-label="Uzaklaştır" title="Uzaklaştır" onClick={()=>setZoom(Math.max(.25,zoom-.1))}>−</button><span>{Math.round(zoom*100)}%</span><button type="button" aria-label="Yakınlaştır" title="Yakınlaştır" onClick={()=>setZoom(Math.min(2,zoom+.1))}>+</button><button type="button" title="Tuvali pencereye sığdır" onClick={()=>{if(viewport.current)setZoom(Math.min(1,(viewport.current.clientWidth-48)/screen.width));}}>Sığdır</button></>}{editor?<div className="resolution-picker" ref={resRef}><button ref={resTriggerRef} type="button" className="resolution-trigger" aria-label="Hedef ekran çözünürlüğü" aria-expanded={resOpen} onClick={()=>setResOpen(o=>!o)}><span>{screen.width} × {screen.height}</span><ChevronDown size={12}/></button>{resOpen&&<div className="resolution-popover" role="dialog" aria-label="Hedef çözünürlük"><div className="resolution-popover-title">Hedef çözünürlük</div><div className="resolution-list">{['1024x768','1280x720','1366x768','1920x1080','1920x1200','2560x1440','3840x2160','1080x1920'].map(size=>{const [rw,rh]=size.split('x').map(Number),active=screen.width===rw&&screen.height===rh;return <button key={size} type="button" className={active?'active':''} onClick={()=>{editorFitted.current=false;change({...screen,width:rw,height:rh});setResOpen(false);resTriggerRef.current?.focus();}}>{rw} × {rh}</button>;})}</div><button type="button" className="resolution-current" onClick={()=>{editorFitted.current=false;change({...screen,width:Math.max(400,Math.min(4000,window.screen.width)),height:Math.max(300,Math.min(3000,window.screen.height))});setResOpen(false);resTriggerRef.current?.focus();}}>Bu ekranı kullan · {window.screen.width} × {window.screen.height}</button></div>}</div>:<span>{screen.width} × {screen.height}</span>}</div></div>
   </section>
-  {editor&&showInspector&&<aside className="inspector">{compact?<div className="drawer-bar"><span>Nesne özellikleri</span><button className="tool" aria-label="Özellikleri kapat" title="Kapat (Esc)" onClick={()=>setShowInspector(false)}><X size={14}/></button></div>:<div className="panel-title">Nesne özellikleri</div>}<div className="inspector-tabs" role="tablist" aria-label="Özellik bölümü">{(['appearance','binding','layout'] as const).map(t=><button key={t} role="tab" aria-selected={inspectorTab===t} onClick={()=>setInspectorTab(t)}>{{appearance:'Görünüm',binding:'Veri',layout:'Yerleşim'}[t]}</button>)}</div>{selected?<><div className="inspector-heading"><strong>{multi?(commonValue(picked,'type')?labels[selected.type]:'Karma seçim'):labels[selected.type]}</strong><span>{multi?selection.length+' nesne seçili':(()=>{const g=symbolGroups.find(g=>(g.types as readonly string[]).includes(selected.type));return g?groupTitle(g.name,language):'Nesne ayarları';})()}</span></div><Field label="Etiket / başlık"><input value={multi?'':selected.label} disabled={multi} placeholder={multi?'Çoklu seçimde nesne nesne düzenlenir':undefined} title={multi?'Etiket her nesneye özeldir; tek nesne seçerek değiştirin.':undefined} onChange={e=>update(selected.id,{label:e.target.value})}/></Field>{inspectorTab==='layout'&&!multi&&(()=>{const links=linksOf(screen,selected.id);return <div className="link-panel"><div className="panel-title">Uç bağlantıları · {links.length}</div>{!links.length&&<p className="small muted">Bu nesnenin ucu başka bir nesneye yapışık değil.</p>}{links.map(l=>{const otherId=l.fromWidgetId===selected.id?l.toWidgetId:l.fromWidgetId;const other=screen.widgets.find(w=>w.id===otherId);return <div className="link-row" key={l.id}><button className="link-jump" onClick={()=>setSelection([otherId])} title="Bağlı nesneyi seç">{other?(other.label||labels[other.type]):'Nesne bulunamadı'}</button><button className="tool" title="Bağlantıyı kaldır" onClick={()=>change(removeLink(current.current,l.id))}><Unlink2 size={12}/></button></div>;})}</div>;})()}{inspectorTab==='layout'&&<><div className="field-grid">{(['x','y','width','height','rotation'] as const).map(k=><Field key={k} label={{x:'X',y:'Y',width:'Genişlik',height:'Yükseklik',rotation:'Dönüş °'}[k]}>{multi?(()=>{const v=k==='x'||k==='y'?(pickedBox?pickedBox[k]:undefined):commonValue(picked,k);return <input type="number" value={v??''} placeholder="karışık" title={k==='x'||k==='y'?'Seçimin '+(k==='x'?'sol':'üst')+' kenarı; nesneler birlikte taşınır':'Tüm seçili nesnelere uygulanır'} onChange={e=>{if(e.target.value==='')return;const n=Number(e.target.value);if(k==='x'||k==='y')change({...current.current,widgets:moveSelectionTo(current.current.widgets,selection,k,n)});else styleSelection({[k]:n});}}/>;})():<input type="number" value={selected[k]} onChange={e=>update(selected.id,{[k]:Number(e.target.value)})}/>}</Field>)}<Field label="Renk"><input type="color" value={multi?(commonValue(picked,'color')??selected.color):selected.color} onChange={e=>multi?styleSelection({color:e.target.value}):update(selected.id,{color:e.target.value})}/></Field></div>{multi&&<Hint>Çoklu seçim: X/Y seçimi bir bütün olarak taşır; boyut, dönüş ve renk tüm seçili nesnelere uygulanır. Kilitli nesneler değişmez.</Hint>}
-   </>}{inspectorTab==='appearance'&&<ObjectAppearance widget={selected} onChange={styleSelection}/>}{inspectorTab==='binding'&&selection.length>1&&<div className="binding-suggest bulk"><p><strong>{selection.length} nesne seçili.</strong> Adı ve etiket kodu eşleşen nesnelere ana etiket ve saha bağları önerilir; belirsiz eşleşme atlanır, mevcut bağlar korunur.</p><button className="btn small wide" onClick={bulkSuggest}>Seçili nesnelere önerileri uygula</button></div>}{inspectorTab==='binding'&&multi&&<Hint>Etiket ve komut bağları her nesneye özeldir; tek nesne seçerek düzenleyin.</Hint>}{inspectorTab==='binding'&&!multi&&<>{selected.equipmentId?<EquipmentPanel instance={(screen.equipment||[]).find(e=>e.id===selected.equipmentId)!} type={equipmentTypes.find(t=>t.id===(screen.equipment||[]).find(e=>e.id===selected.equipmentId)?.typeId)} config={config} onBinding={(key,value)=>bindEquipment(selected.equipmentId,key,value)} onRename={name=>renameEquipment(selected.equipmentId,name)} onDissolve={()=>dissolveEquipment(selected.equipmentId)} drift={equipmentDrift(screen,equipmentTypes).find(d=>d.instanceId===selected.equipmentId)} onUpgrade={()=>upgradeInstance(selected.equipmentId)} onRevise={()=>void reviseType(selected.equipmentId)}/>:<Field label="Durum / değer etiketi"><SearchSelect ariaLabel="Durum / değer etiketi" value={selected.tagId} emptyLabel="Bağlantı yok" placeholder="Etiket seçin" options={tagPickOptions(config)} onChange={v=>update(selected.id,{tagId:v})}/></Field>}{(()=>{const m=suggestMainTag(selected,config);return m?<div className="binding-suggest compact"><p>Nesne adıyla eşleşen etiket: <strong>{m.tagCode}</strong></p><button className="btn small" onClick={()=>update(selected.id,{tagId:m.tagId})}>Bağla</button></div>:null;})()}
+  {editor&&showInspector&&<aside className="inspector">{compact?<div className="drawer-bar"><span>Nesne özellikleri</span><button className="tool" aria-label="Özellikleri kapat" title="Kapat (Esc)" onClick={()=>setShowInspector(false)}><X size={14}/></button></div>:<div className="panel-title">Nesne özellikleri</div>}<div className="inspector-tabs" role="tablist" aria-label="Özellik bölümü" onKeyDown={e=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+   e.preventDefault();
+   const order=['appearance','binding','layout'] as const;
+   const idx=order.indexOf(inspectorTab);
+   const nextIdx=e.key==='Home'?0:e.key==='End'?order.length-1:(idx+(e.key==='ArrowRight'?1:-1)+order.length)%order.length;
+   setInspectorTab(order[nextIdx]);
+   e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[nextIdx]?.focus();
+  }}>{(['appearance','binding','layout'] as const).map(t=><button type="button" key={t} role="tab" tabIndex={inspectorTab===t?0:-1} aria-selected={inspectorTab===t} onClick={()=>setInspectorTab(t)}>{{appearance:'Görünüm',binding:'Veri',layout:'Yerleşim'}[t]}</button>)}</div>{selected?<><div className="inspector-heading"><strong>{multi?(commonValue(picked,'type')?labels[selected.type]:'Karma seçim'):labels[selected.type]}</strong><span>{multi?selection.length+' nesne seçili':(()=>{const g=symbolGroups.find(g=>(g.types as readonly string[]).includes(selected.type));return g?groupTitle(g.name,language):'Nesne ayarları';})()}</span></div><Field label="Etiket / başlık"><input value={multi?'':selected.label} disabled={multi} placeholder={multi?'Çoklu seçimde tek tek düzenlenir':undefined} title={multi?'Etiket her nesneye özeldir; tek nesne seçerek değiştirin.':undefined} onChange={e=>update(selected.id,{label:e.target.value})}/></Field>{inspectorTab==='layout'&&!multi&&(()=>{const links=linksOf(screen,selected.id);return <div className="link-panel"><div className="panel-title">Uç bağlantıları · {links.length}</div>{!links.length&&<p className="small muted">Bu nesnenin ucu başka bir nesneye yapışık değil.</p>}{links.map(l=>{const otherId=l.fromWidgetId===selected.id?l.toWidgetId:l.fromWidgetId;const other=screen.widgets.find(w=>w.id===otherId);return <div className="link-row" key={l.id}><button className="link-jump" onClick={()=>setSelection([otherId])} title="Bağlı nesneyi seç">{other?(other.label||labels[other.type]):'Nesne bulunamadı'}</button><button className="tool" title="Bağlantıyı kaldır" onClick={()=>change(removeLink(current.current,l.id))}><Unlink2 size={12}/></button></div>;})}</div>;})()}{inspectorTab==='layout'&&<><div className="field-grid">{(['x','y','width','height','rotation'] as const).map(k=><Field key={k} label={{x:'X',y:'Y',width:'Genişlik',height:'Yükseklik',rotation:'Dönüş °'}[k]}>{multi?(()=>{const v=k==='x'||k==='y'?(pickedBox?pickedBox[k]:undefined):commonValue(picked,k);return <input type="number" value={v??''} placeholder="karışık" title={k==='x'||k==='y'?'Seçimin '+(k==='x'?'sol':'üst')+' kenarı; nesneler birlikte taşınır':'Tüm seçili nesnelere uygulanır'} onChange={e=>{if(e.target.value==='')return;const n=Number(e.target.value);if(k==='x'||k==='y')change({...current.current,widgets:moveSelectionTo(current.current.widgets,selection,k,n)});else styleSelection({[k]:n});}}/>;})():<input type="number" value={selected[k]} onChange={e=>update(selected.id,{[k]:Number(e.target.value)})}/>}</Field>)}<Field label="Renk"><input type="color" value={multi?(commonValue(picked,'color')??selected.color):selected.color} onChange={e=>multi?styleSelection({color:e.target.value}):update(selected.id,{color:e.target.value})}/></Field></div>{multi&&<Hint>Çoklu seçim: X/Y seçimi bir bütün olarak taşır; boyut, dönüş ve renk tüm seçili nesnelere uygulanır. Kilitli nesneler değişmez.</Hint>}
+   </>}{inspectorTab==='appearance'&&<ObjectAppearance widget={selected} onChange={styleSelection} symbolStyle={screen.symbolStyle} surface={surfaceTheme(screen.background,theme)}/>}{inspectorTab==='binding'&&selection.length>1&&<div className="binding-suggest bulk"><p><strong>{selection.length} nesne seçili.</strong> Adı ve etiket kodu eşleşen nesnelere ana etiket ve saha bağları önerilir; belirsiz eşleşme atlanır, mevcut bağlar korunur.</p><button className="btn small wide" onClick={bulkSuggest}>Seçili nesnelere önerileri uygula</button></div>}{inspectorTab==='binding'&&multi&&<Hint>Etiket ve komut bağları her nesneye özeldir; tek nesne seçerek düzenleyin.</Hint>}{inspectorTab==='binding'&&!multi&&<>{selected.equipmentId?<EquipmentPanel instance={(screen.equipment||[]).find(e=>e.id===selected.equipmentId)!} type={equipmentTypes.find(t=>t.id===(screen.equipment||[]).find(e=>e.id===selected.equipmentId)?.typeId)} config={config} onBinding={(key,value)=>bindEquipment(selected.equipmentId,key,value)} onRename={name=>renameEquipment(selected.equipmentId,name)} onDissolve={()=>dissolveEquipment(selected.equipmentId)} drift={equipmentDrift(screen,equipmentTypes).find(d=>d.instanceId===selected.equipmentId)} onUpgrade={()=>upgradeInstance(selected.equipmentId)} onRevise={()=>void reviseType(selected.equipmentId)}/>:<Field label="Durum / değer etiketi"><SearchSelect ariaLabel="Durum / değer etiketi" value={selected.tagId} emptyLabel="Bağlantı yok" placeholder="Etiket seçin" options={tagPickOptions(config)} onChange={v=>update(selected.id,{tagId:v})}/></Field>}{(()=>{const m=suggestMainTag(selected,config);return m?<div className="binding-suggest compact"><p>Nesne adıyla eşleşen etiket: <strong>{m.tagCode}</strong></p><button className="btn small" onClick={()=>update(selected.id,{tagId:m.tagId})}>Bağla</button></div>:null;})()}
    {selected.type==='selector'&&!selected.equipmentId&&<><Field label="Konum yazma komutu (isteğe bağlı)"><SearchSelect ariaLabel="Konum yazma komutu" value={selected.commandId} emptyLabel="Komut yok · salt gösterge" placeholder="Komut seçin" options={commandPickOptions(config,c=>c.tagIds.length===1&&config.tags.find(t=>t.id===c.tagIds[0])?.dataType!=='bool')} onChange={v=>{const c=config.commands.find(x=>x.id===v);update(selected.id,{commandId:v,...(v?{mode:'analog',tagId:c?.feedbackTagIds[0]||''}:{})});}}/></Field><Hint>Komut bağlıysa her tıkta bir sonraki konuma geçilir ve o konumun değeri yazılır. Konum geri bildirimi okunamıyorsa kumanda kapalıdır; komut yoksa sembol salt göstergedir.</Hint></>}{['numeric-input','slider','keypad','pid'].includes(selected.type)&&!selected.equipmentId&&<><Field label="Sayısal yazma komutu"><SearchSelect ariaLabel="Sayısal yazma komutu" value={selected.commandId} emptyLabel="Komut seçin" placeholder="Komut seçin" options={commandPickOptions(config,c=>c.tagIds.length===1&&config.tags.find(t=>t.id===c.tagIds[0])?.dataType!=='bool')} onChange={v=>{const c=config.commands.find(x=>x.id===v);update(selected.id,{commandId:v,tagId:c?.feedbackTagIds[0]||''});}}/></Field><Hint>Birim ve hassasiyet hedef etiketten gelir. Sayısal komut yoksa önce Etiketler'de holding-register, Komutlar'da yazma komutu tanımlayın.</Hint>
    <div className="field-grid"><Field label="Yazma alt sınırı"><input type="number" value={selected.writeMin??''} placeholder="Etiketin sınırı" onChange={e=>update(selected.id,{writeMin:e.target.value===''?null:Number(e.target.value)})}/></Field><Field label="Yazma üst sınırı"><input type="number" value={selected.writeMax??''} placeholder="Etiketin sınırı" onChange={e=>update(selected.id,{writeMax:e.target.value===''?null:Number(e.target.value)})}/></Field></div>
    <Hint>Boş bırakılırsa etiketin kendi sınırları geçerli. Etiketin sınırını genişletemez, yalnız daraltır. Sunucu da aynı aralığı zorlar; aralık dışı değer arayüz atlansa bile sahaya gitmez.</Hint></>}{isButton(selected.type)&&!selected.equipmentId&&<><Field label="Yazma komutu"><SearchSelect ariaLabel="Yazma komutu" value={selected.commandId} emptyLabel="Komut seçin" placeholder="Komut seçin" options={commandPickOptions(config)} onChange={v=>{const c=config.commands.find(x=>x.id===v);update(selected.id,{commandId:v,...(selected.action==='toggle'?{tagId:c?.feedbackTagIds[0]||''}:{})});}}/></Field><Field label="İşlem"><select value={selected.action} onChange={e=>update(selected.id,{action:e.target.value as Widget['action'],...(e.target.value==='toggle'?{tagId:config.commands.find(c=>c.id===selected.commandId)?.feedbackTagIds[0]||''}:{}),...(e.target.value==='momentary'?{pulseMs:10000}:e.target.value==='pulse'?{pulseMs:500}:{})})}><option value="on">Aç (true)</option><option value="off">Kapat (false)</option><option value="set">Sabit değer yaz</option><option value="toggle">Aç / kapa · her basışta değiştir</option><option value="momentary">Çek bas · basılı tuttukça açık</option><option value="pulse">Darbe · süre sonunda kendi kapanır</option></select></Field>{selected.action==='toggle'&&<><Hint>Metin PLC geri bildirimini gösterir. Basışta tersi yazılır; yanıt beklenirken tekrar gönderilmez.</Hint><Field label="Açık durum metni"><input value={selected.onText} onChange={e=>update(selected.id,{onText:e.target.value})}/></Field><Field label="Kapalı durum metni"><input value={selected.offText} onChange={e=>update(selected.id,{offText:e.target.value})}/></Field></>}{selected.action==='set'&&<Field label="Yazılacak değer"><input type="number" value={selected.setValue} onChange={e=>update(selected.id,{setValue:Number(e.target.value)})}/></Field>}{['momentary','pulse'].includes(selected.action)&&<><Field label={selected.action==='momentary'?'Güvenlik · en geç kapanma (ms)':'Darbe süresi (ms)'}><input type="number" min={50} max={60000} step={50} value={selected.pulseMs} onChange={e=>update(selected.id,{pulseMs:Math.max(50,Math.min(60000,Number(e.target.value)||500))})}/></Field><Hint>{selected.action==='momentary'?'Basılı tutuldukça true, parmak kalkınca false. Sekme gizlenir veya odak giderse çıkış hemen, hiçbir şey olmazsa en geç bu süre sonunda düşer. Bırakma gönderilemezse kırmızı uyarı çıkar. Emniyet fonksiyonu değildir; kalıcı emniyet PLC tarafında kalır.':'Tek basışta true, bu süre sonunda false. Kendini tutan (latch) devrelerde bunu seçin; çıkış basılı kalmaz.'}</Hint></>}</>}
@@ -931,7 +1092,7 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
     <Hint>Operatör bilgi düğmesine basınca bu satırlar açılır: değer satırları canlı okumayı gösterir, komut satırları aynı doğrulamadan geçerek yazar.</Hint></>}
    {inspectorTab==='binding'&&!multi&&allowsStateRules(selected.type)&&<><Field label="Bağlama türü"><select value={selected.mode} onChange={e=>update(selected.id,{mode:e.target.value as Widget['mode']})}><option value="digital">Dijital · her kademe ayrı etiket</option><option value="analog">Analog · tek sayısal etiket + eşik</option></select></Field>{selected.mode==='analog'&&<Field label="Kural türü"><select value={selected.rangeMode} onChange={e=>update(selected.id,{rangeMode:e.target.value as Widget['rangeMode']})}><option value="threshold">Eşik · en yüksek uygun eşik</option><option value="range">Aralık · alt dahil, üst hariç</option></select></Field>}<div className="parts-head"><span>{selected.type==='tower-light'?'KUTUCUKLAR':'KADEMELER'} · {selected.parts.length}</span><button className="tool" title="Kademe ekle" disabled={selected.parts.length>=8} onClick={()=>update(selected.id,{parts:[...selected.parts,{tagId:'',label:String(selected.parts.length),color:'#208169',value:selected.parts.length,upper:null,expected:true}]})}><Plus size={13}/></button></div>{selected.parts.map((p,i)=><div className="part-row" key={i}><input className="part-label" value={p.label} placeholder={'Kademe '+i} aria-label={'Kademe '+i+' adı'} onChange={e=>patchPart(selected,i,{label:e.target.value})}/><input type="color" aria-label="Renk" value={p.color} onChange={e=>patchPart(selected,i,{color:e.target.value})}/>{selected.mode==='digital'?<SearchSelect ariaLabel="Kademe etiketi" value={p.tagId} emptyLabel="Etiket yok" placeholder="Etiket seçin" options={tagPickOptions(config,t=>t.dataType==='bool')} onChange={v=>patchPart(selected,i,{tagId:v})}/>:<input type="number" aria-label="Alt sınır / eşik" title="Bu değer dahil, buradan itibaren etkin" value={p.value} onChange={e=>patchPart(selected,i,{value:Number(e.target.value)})}/>}{selected.mode==='analog'&&selected.rangeMode==='range'&&<input type="number" aria-label="Üst sınır (hariç)" placeholder="Üst sınır yok" value={p.upper??''} onChange={e=>patchPart(selected,i,{upper:e.target.value===''?null:Number(e.target.value)})}/>} {selected.mode==='digital'&&<select aria-label="Beklenen sinyal" value={String(p.expected)} onChange={e=>patchPart(selected,i,{expected:e.target.value==='true'})}><option value="true">1 · Açık</option><option value="false">0 · Kapalı</option></select>}<button className="tool" title="Kuralı yukarı taşı" disabled={i===0} onClick={()=>{const parts=[...selected.parts];[parts[i-1],parts[i]]=[parts[i],parts[i-1]];update(selected.id,{parts});}}><ArrowUp size={12}/></button><button className="tool" title="Kuralı aşağı taşı" disabled={i===selected.parts.length-1} onClick={()=>{const parts=[...selected.parts];[parts[i+1],parts[i]]=[parts[i],parts[i+1]];update(selected.id,{parts});}}><ArrowDown size={12}/></button><button className="tool" title="Kademeyi kaldır" disabled={false} onClick={()=>update(selected.id,{parts:selected.parts.filter((_,n)=>n!==i)})}><Trash2 size={12}/></button></div>)}<Hint>{selected.mode==='digital'?'Kural sırası önceliktir; ilk eşleşen renk gösterilir. Bilinmeyen sinyalde durum bilinmiyor gösterilir. Sinyal kulesinde birden fazla kutucuk yanabilir.':'"Durum / değer etiketi" okunur; eşikte en yüksek uygun değer, aralıkta ilk eşleşen satır kullanılır. Üst sınır dahil değildir, boş üst sınır sınırsızdır.'}</Hint></>}
    {inspectorTab==='layout'&&<><div className="property-section">Boyut ve hizalama</div><div className="size-tools"><button disabled={selection.length<2} onClick={()=>change({...screen,widgets:matchSize(screen.widgets,selection,'width')})}>Aynı genişlik</button><button disabled={selection.length<2} onClick={()=>change({...screen,widgets:matchSize(screen.widgets,selection,'height')})}>Aynı yükseklik</button></div><p className="small muted">Seçili nesnenin 8 tutamağından boyutlandırın. Shift · en-boy oranını koru, Alt · merkezden büyüt/küçült, Ctrl + ok tuşları · klavyeyle boyutlandır.</p><div className="property-section">Döndür ve aynala</div><div className="inspector-tools"><Tool title="90° sola döndür (Shift+[)" onClick={()=>rotateSelection(-90)}><RotateCcw/></Tool><Tool title="90° sağa döndür (Shift+])" onClick={()=>rotateSelection(90)}><RotateCw/></Tool><Tool title="Yatay aynala (H)" onClick={()=>mirror('x')}><FlipHorizontal2/></Tool><Tool title="Dikey aynala (V)" onClick={()=>mirror('y')}><FlipVertical2/></Tool></div><div className="size-tools"><button onClick={()=>setRotation(0)}>Dönüşü sıfırla</button><button onClick={()=>styleSelection({flipX:false,flipY:false})}>Aynalamayı sıfırla</button></div><div className="size-tools">{[0,45,90,135,180,225,270,315].map(d=><button key={d} className={selected.rotation===d?'active':''} onClick={()=>setRotation(d)}>{d}°</button>)}</div><p className="small muted">Tutamağın üstündeki daireden serbest döndürün; Shift 15° adımlarla kilitler. Aynalama seçimi ortak eksende çevirir.</p><div className="inspector-tools"><Tool title="Sola hizala" onClick={()=>arrange('left')}><AlignLeft/></Tool><Tool title="Yatayda ortala" onClick={()=>arrange('center')}><AlignCenter/></Tool><Tool title="Sağa hizala" onClick={()=>arrange('right')}><AlignRight/></Tool><Tool title="Üste hizala" onClick={()=>arrange('top')}><AlignVerticalJustifyStart/></Tool><Tool title="Dikeyde ortala" onClick={()=>arrange('middle')}><AlignVerticalJustifyCenter/></Tool><Tool title="Alta hizala" onClick={()=>arrange('bottom')}><AlignVerticalJustifyEnd/></Tool><button className="tool" title="Yatay eşit aralık" onClick={()=>arrange('space')}>↔</button><button className="tool" title="Dikey eşit aralık" onClick={()=>arrange('space-v')}>↕</button><Tool title="Yapıştır (Ctrl+V)" onClick={paste}><ClipboardPaste/></Tool><Tool title="Grupla" onClick={()=>group()}><Group/></Tool><Tool title="Grubu çöz" onClick={()=>group(true)}><Ungroup/></Tool><Tool title="Öne getir" onClick={()=>layer(true)}><ArrowUp/></Tool><Tool title="Arkaya gönder" onClick={()=>layer(false)}><ArrowDown/></Tool><Tool title="Kilitle / aç" onClick={()=>multi?lockLayers(selection):update(selected.id,{locked:!selected.locked})}>{selected.locked?<Unlock/>:<Lock/>}</Tool></div></>}
-  </>:<><div className="inspector-empty"><MousePointer2 size={28}/><p>Özelliklerini düzenlemek için bir nesne seçin.</p></div><div className="property-section">Çizim alanı</div><Field label="Arka plan"><input type="color" value={screen.background||'#ffffff'} onChange={e=>change({...screen,background:e.target.value})}/></Field><button className="property-reset" onClick={()=>change({...screen,background:''})}>Arka plan için temayı kullan</button><Field label="Sembol stili"><select value={screen.symbolStyle||'classic'} onChange={e=>change({...screen,symbolStyle:e.target.value as Screen['symbolStyle']})}><option value="classic">Klasik · nesne renkleri</option><option value="isa101">ISA-101 · gri, renk yalnız anormal durumda</option><option value="detailed">Detaylı · metalik gövde, derinlik</option></select></Field>{(screen.symbolStyle||'classic')==='isa101'&&<Hint>Süreç sembolleri normal işletmede gri çizilir; alarm, uyarı ve bilinmeyen veri renkli kalır. Buton, lamba, gösterge ve yerleşim nesnelerinin renklerine dokunulmaz. Nesne renkleri silinmez; Klasik'e dönünce geri gelir.</Hint>}<Field label="Izgara aralığı"><select value={screen.gridSize} onChange={e=>change({...screen,gridSize:Number(e.target.value)})}>{[5,10,20,25,50,100].map(n=><option key={n} value={n}>{n} px</option>)}</select></Field><Field label="Ekran adı"><input value={screen.name} onChange={e=>change({...screen,name:e.target.value})}/></Field><div className="field-grid"><Field label="Genişlik"><BoundedNumber label="Tuval genişliği" value={screen.width} min={400} max={4000} onCommit={v=>change({...screen,width:v})}/></Field><Field label="Yükseklik"><BoundedNumber label="Tuval yüksekliği" value={screen.height} min={300} max={3000} onCommit={v=>change({...screen,height:v})}/></Field></div></>}</aside>}
+  </>:<><div className="inspector-empty"><MousePointer2 size={28}/><p>Özelliklerini düzenlemek için bir nesne seçin.</p></div><div className="property-section">Çizim alanı</div><Field label="Arka plan"><input type="color" value={screen.background||(theme==='dark'?'#262d36':'#ffffff')} onChange={e=>change({...screen,background:e.target.value})}/></Field><button className="property-reset" onClick={()=>change({...screen,background:''})}>Arka plan için temayı kullan</button><Field label="Sembol stili"><select value={screen.symbolStyle||'classic'} onChange={e=>change({...screen,symbolStyle:e.target.value as Screen['symbolStyle']})}><option value="classic">Klasik · nesne renkleri</option><option value="isa101">ISA-101 · gri, renk yalnız anormal durumda</option><option value="detailed">Detaylı · metalik gövde, derinlik</option></select></Field>{(screen.symbolStyle||'classic')==='isa101'&&<Hint>Süreç sembolleri normal işletmede gri çizilir; alarm, uyarı ve bilinmeyen veri renkli kalır. Buton, lamba, gösterge ve yerleşim nesnelerinin renklerine dokunulmaz. Nesne renkleri silinmez; Klasik'e dönünce geri gelir.</Hint>}<Field label="Izgara aralığı"><select value={screen.gridSize} onChange={e=>change({...screen,gridSize:Number(e.target.value)})}>{[5,10,20,25,50,100].map(n=><option key={n} value={n}>{n} px</option>)}</select></Field><Field label="Ekran adı"><input value={screen.name} onChange={e=>change({...screen,name:e.target.value})}/></Field><div className="field-grid"><Field label="Genişlik"><BoundedNumber label="Tuval genişliği" value={screen.width} min={400} max={4000} onCommit={v=>change({...screen,width:v})}/></Field><Field label="Yükseklik"><BoundedNumber label="Tuval yüksekliği" value={screen.height} min={300} max={3000} onCommit={v=>change({...screen,height:v})}/></Field></div></>}</aside>}
  {editor&&menu&&<ContextMenu x={menu.x} y={menu.y} items={menu.widget?[
    {label:'Kes',hint:'Ctrl+X',icon:<Scissors size={13}/>,run:cut,off:!selection.length},
    {label:'Kopyala',hint:'Ctrl+C',icon:<Copy size={13}/>,run:copy,off:!selection.length},
@@ -1062,15 +1223,21 @@ export function Studio({record,records,config,live,user,mode,onRefresh,onScreen,
      onClick={async()=>{setLintModal(m=>m?{...m,busy:true}:m);await doPublish(hasCritical?lintModal.reason.trim():undefined);setLintModal(null);}}>
      {lintModal.busy?'Yayınlanıyor…':hasCritical?'Gerekçeyle yayınla':'Yine de yayınla'}</button></div>
   </div></div>;})()}
+  {pendingTemplate&&<div className="modal-backdrop" onPointerDown={()=>setPendingTemplate(null)}>
+   <div ref={templateModalRef} className="modal template-apply-modal" role="dialog" aria-modal="true" aria-label="Ekran şablonunu kullan" onPointerDown={e=>e.stopPropagation()}>
+    <div className="modal-heading"><h2>{pendingTemplate.name}</h2><button className="tool" aria-label="Kapat" onClick={()=>setPendingTemplate(null)}><X size={16}/></button></div>
+    <div className="template-apply-preview" aria-hidden="true">{renderBackdropSvg(pendingTemplate.backdropVariant,'apply-'+pendingTemplate.id)}</div>
+    <p className="small muted spaced">{pendingTemplate.description}</p>
+    <div className="template-apply-tags">{pendingTemplate.highlights.map(h=><span key={h} className="badge">{h}</span>)}</div>
+    <p className="small muted spaced">Mevcut tuvale uygularsanız tuvaldeki taslak şablonla değişir (geri almak için <strong>Ctrl+Z</strong>). İsterseniz doğrudan yeni bir ekran olarak da açabilirsiniz.</p>
+    <div className="modal-actions">
+     <button className="btn" onClick={()=>setPendingTemplate(null)}>Vazgeç</button>
+     {onCreateFromTemplate&&<button className="btn" onClick={()=>{const id=pendingTemplate.id;setPendingTemplate(null);void onCreateFromTemplate(id);}}>Yeni ekran olarak aç</button>}
+     <button className="btn primary" onClick={()=>applyScreenTemplate(pendingTemplate)}>Mevcut tuvale uygula</button>
+    </div>
+   </div></div>}
  </>,fullscreenHost||document.body)}
  </div>;
-}
-export function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="field"><span>{label}</span>{children}</label>;}
-/* G49: panel dipnottan gecilmiyordu — her ayarin altinda iki paragraf vardi
- * ve panel okunamayacak kadar uzuyordu. Aciklama silinmedi, KATLANDI: bir
- * satirlik ozet gorunur, ayrinti isteyene acilir. */
-export function Hint({children,summary='Nasıl çalışır?'}:{children:React.ReactNode;summary?:string}){
- return <details className="hint"><summary>{summary}</summary><div>{children}</div></details>;
 }
 type MenuItem={label:string;hint?:string;icon:React.ReactNode;run:()=>void;off?:boolean;danger?:boolean;line?:boolean};
 function ContextMenu({x,y,items,onRun}:{x:number;y:number;items:MenuItem[];onRun:(fn:()=>void)=>void}){
@@ -1082,7 +1249,14 @@ function ContextMenu({x,y,items,onRun}:{x:number;y:number;items:MenuItem[];onRun
    {item.icon}<span>{item.label}</span>{item.hint&&<small>{item.hint}</small>}</button>)}
  </div>;
 }
-function Tool({title,onClick,children,disabled=false,active=false}:{title:string;onClick:()=>void;children:React.ReactNode;disabled?:boolean;active?:boolean}){return <button className={'tool '+(active?'active':'')} title={title} aria-label={title} onClick={onClick} disabled={disabled}>{children}</button>;}
+function Tool({title,onClick,children,disabled=false,active=false,pressed}:{title:string;onClick:()=>void;children:React.ReactNode;disabled?:boolean;active?:boolean;pressed?:boolean}){return <button type="button" className={'tool '+(active?'active':'')} title={title} aria-label={title} aria-pressed={pressed} onClick={onClick} disabled={disabled}>{children}</button>;}
+function PipePenIcon(){
+ return <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <path d="M3 12V6a2 2 0 0 1 2-2h6"/>
+  <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+  <circle cx="13" cy="4" r="1.5" fill="currentColor" stroke="none"/>
+ </svg>;
+}
 
 /** Ekipman instansinin girdi baglarini tek yerden duzenler; 20 uye nesne tek tek acilmaz. */
 /* --- Saha baglari paneli (A1) ---------------------------------------------

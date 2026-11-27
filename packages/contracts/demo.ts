@@ -1,7 +1,7 @@
 import {widgetSchema,type Config,type Screen} from './model';
 /** Demo proses ekrani; yalnizca guvenli widget modeli uretir, PLC'ye erismez. */
 export function utilityDemoScreen(config:Config):Screen{
- const screen:Screen={background:'#0b1720',symbolStyle:'classic',gridSize:10,id:'screen-utility-demo',name:'Yardımcı Tesis · Demo',width:1500,height:900,widgets:[],equipment:[],scenarios:[],links:[]};
+ const screen:Screen={background:'',symbolStyle:'detailed',gridSize:10,id:'screen-utility-demo',name:'Yardımcı Tesis · Demo',width:1500,height:900,widgets:[],equipment:[],scenarios:[],links:[]};
  const add=(data:Record<string,unknown>)=>screen.widgets.push(widgetSchema.parse({id:'utility-'+screen.widgets.length,x:0,y:0,width:120,height:70,...data}));
  const tag=(code:string)=>config.tags.find(t=>t.code===code)?.id||'';
  add({type:'text',label:'YARDIMCI TESİS · POMPA / TANK / VANA İZLEME',x:55,y:24,width:900,height:42});
